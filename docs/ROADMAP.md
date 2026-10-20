@@ -11,17 +11,19 @@
 - [ ] Verify BepInEx plugin enumeration and config write APIs on actual installed IL2CPP runtime
 - [ ] Compare Unity UI modules, input modules and XR hooks on Community and Renewed
 
-## Phase 1 — Minimal VR runtime proof
+## Phase 1 — Native Orbus Settings integration investigation (replaces wrist prototype)
 
 - [ ] \`OrbusRebornMenu\` BepInEx 6 IL2CPP plugin project builds against \`GameDir\`
 - [ ] Logs clean load on both game editions without modifying core Orbus UI
-- [x] Choose default opening interaction and native parchment look ([VR UX spec](VR_UX.md))
-- [ ] World-space panel can appear and disappear safely in real VR
-- [ ] Independent wrist-open and desktop fallback input; no collisions with RebornCam keys
-- [ ] VR laser/pointer focus + trigger, clear buttons and consistent scrolling
-- [ ] Recovery/recenter method if menu leaves view
+- [x] Retire the unsuccessful independent wrist/hand-built parchment prototype
+- [x] Target native Orbus Settings entry ([current design](NATIVE_MENU_PLAN.md))
+- [ ] Capture native Settings closed/open delta with RebornCam v0.9.12 (requires user VR test)
+- [ ] Identify whether Settings navigation uses Unity UI, PowerUI, or a mixed system
+- [ ] Prove a reversible Mods tab/entry without modifying existing game UI callbacks
+- [ ] Reuse Orbus's existing controller laser and click interactions
+- [ ] Match native parchment panel and font; safely close and reopen via game menu
 
-**Gate:** real screenshots/video showing the panel and working controls in both clients.
+**Gate:** real screenshots/video of a native-style Mods entry responding to the normal VR controller pointer in both clients.
 
 ## Phase 2 — Universal config pages
 
