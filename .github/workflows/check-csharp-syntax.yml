@@ -2,9 +2,11 @@ name: Validate RebornMenu C# syntax
 
 on:
   push:
-    branches: [main, feature/first-vr-runtime-prototype]
+    branches: [main, feature/first-vr-runtime-prototype, feature/native-settings-mods-v020]
     paths:
       - "src/**"
+      - "tests/NativeSettingsMarkup.Tests.cs"
+      - "tests/NativeSettingsMarkup.Tests.csproj"
       - "build.ps1"
       - "release.ps1"
       - "tests/check-csharp-syntax.ps1"
@@ -37,6 +39,9 @@ jobs:
             }
             Write-Host "PASS: $path syntax"
           }
+      - name: Test safe Settings HTML extension
+        shell: pwsh
+        run: dotnet run --project tests/NativeSettingsMarkup.Tests.csproj -c Release
       - name: Parse project source with Roslyn
         shell: pwsh
         run: ./tests/check-csharp-syntax.ps1
