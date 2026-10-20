@@ -32,6 +32,7 @@ internal static class NativeModsSettingsBridge
     private static int _extensions;
     private static int _registered;
     private static int _failedBindings;
+    private static int _nearSettingsCandidates;
     private static readonly HashSet<long> BoundPointers = new();
     private static readonly List<object> KeepAlive = new();
 
@@ -47,7 +48,9 @@ internal static class NativeModsSettingsBridge
         Type? legacy = FindType("PowerUI.Element");
         Type? modern = FindType("Dom.Element");
         Type? htmlDoc = FindType("PowerUI.HtmlDocument");
-        Type? selected = legacy ?? (htmlDoc != null ? modern : null);
+        // Renewed may expose legacy compatibility classes even while its live
+        // menu is rendered through modern Dom.Element. Prefer that runtime.
+        Type? selected = htmlDoc != null && modern != null ? modern : legacy;
         if (selected == null)
         {
             _log.LogWarning("[RebornMenu] No supported PowerUI Settings renderer. " +
@@ -159,13 +162,20 @@ internal static class NativeModsSettingsBridge
         {
             string id = ElementId(__instance);
             if (NativeSettingsMarkup.TryExtend(id, __0,
-                out string extended, out _))
+                out string extended, out string reason))
             {
                 __0 = extended;
                 _extensions++;
                 if (_extensions <= 5)
                     _log?.LogInfo("[RebornMenu] Added native Mods entry to " +
                         id + " (preview #" + _extensions + ").");
+            }
+            else if (id.IndexOf("setting", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                     _nearSettingsCandidates++ < 5)
+            {
+                _log?.LogInfo("[RebornMenu] Saw native Settings element '" +
+                    (id.Length > 80 ? id.Substring(0, 80) : id) +
+                    "', but left it unchanged: " + reason);
             }
         }
         catch (Exception ex)
