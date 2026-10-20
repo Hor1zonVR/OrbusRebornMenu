@@ -10,7 +10,7 @@ RebornMenu is a normal, optional BepInEx client plugin until we have proven its 
 - The maintainer runs `./release.ps1` on Windows to build from the newest `main` and publish **OrbusRebornMenu.dll** to GitHub Releases.
 - The build script **automatically finds and remembers a local BepInEx interop reference directory**. It does **not** ask for an installation destination and **never installs a DLL in any game**.
 - RM lists **RebornMenu** in **Client Mods**, and a normal stable release can be installed, updated, disabled or uninstalled for the instance you're managing.
-- A GitHub *prerelease* created with `./release.ps1 -Preview` deliberately does **not** appear in RM's stable catalogue. Use preview for experiments before promoting the version.
+- A GitHub *prerelease* created with `./release.ps1 -Preview` deliberately does **not** appear in RM's stable catalogue. After verifying the preview, run `./release.ps1` again on the same source to **promote the identical DLL** to stable; RM will then offer it.
 - Once the runtime is stable, RM can manage it as a core companion, installed automatically after BepInEx initialization; normal BepInEx mods must not depend on it.
 
 ### To publish a new version (maintainers)
