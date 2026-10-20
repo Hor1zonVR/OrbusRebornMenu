@@ -1,13 +1,12 @@
-# RebornMenu v0.1 experimental local build and optional test-instance install.
+# RebornMenu v0.1 experimental compile-only helper; never installs in a game.
 # GitHub remains source of truth; game references never get committed.
 # Examples:
 #   .\build.ps1
-#   .\build.ps1 -GameDir "$env:LOCALAPPDATA\OrbusRebornModdingInstances\My Orbus Renewed" -Install
+#   .\build.ps1 -GameDir "$env:LOCALAPPDATA\OrbusRebornModdingInstances\My Orbus Renewed"
 
 [CmdletBinding()]
 param(
-    [string] $GameDir = "",
-    [switch] $Install
+    [string] $GameDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,32 +18,45 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw "The .NET 8 SDK is required to build RebornMenu."
 }
 
+# This selects compile REFERENCES, not an installation target.
+# The resulting DLL is released to GitHub; players select the destination in RM.
+$cachePath = Join-Path $root '.build-refs-path.txt'
+function Test-ReferenceGame([string]$path) {
+    return -not [string]::IsNullOrWhiteSpace($path) -and
+           (Test-Path (Join-Path $path 'BepInEx\interop\Il2Cppmscorlib.dll') -PathType Leaf) -and
+           (Test-Path (Join-Path $path 'BepInEx\interop\UnityEngine.InputModule.dll') -PathType Leaf)
+}
+
+if ([string]::IsNullOrWhiteSpace($GameDir) -and (Test-Path $cachePath -PathType Leaf)) {
+    $cached = (Get-Content -LiteralPath $cachePath -Raw).Trim()
+    if (Test-ReferenceGame $cached) {
+        $GameDir = $cached
+        Write-Host "Reusing saved build references: $GameDir" -ForegroundColor Cyan
+    }
+}
 if ([string]::IsNullOrWhiteSpace($GameDir)) {
     $library = Join-Path $env:LOCALAPPDATA 'OrbusRebornModdingInstances'
-    if (-not (Test-Path $library)) {
-        throw "No RM instance library found. Supply -GameDir <modded game folder>."
+    if (-not (Test-Path $library -PathType Container)) {
+        throw "No RM instance library. Supply -GameDir once to a BepInEx-prepared game, or install an RM game instance."
     }
-    $candidates = @(Get-ChildItem -LiteralPath $library -Directory |
-        Where-Object {
-            Test-Path (Join-Path $_.FullName 'BepInEx\interop\Il2Cppmscorlib.dll') -PathType Leaf
-        })
-    if ($candidates.Count -eq 0) {
-        throw "No BepInEx interop found. Launch a prepared modded instance once or specify -GameDir."
+
+    # Prefer the previously verified Spades installation. Never ask to pick.
+    $preferred = @('My Orbus Renewed', 'Modded Orbus')
+    $candidates = @(Get-ChildItem -LiteralPath $library -Directory | Sort-Object Name)
+    $ordered = @()
+    foreach ($name in $preferred) {
+        $ordered += @($candidates | Where-Object { $_.Name -eq $name })
     }
-    if ($candidates.Count -eq 1) {
-        $GameDir = $candidates[0].FullName
-    } else {
-        Write-Host 'Select a game instance used for COMPILING RebornMenu:' -ForegroundColor Cyan
-        for ($i = 0; $i -lt $candidates.Count; $i++) {
-            Write-Host "  [$($i+1)] $($candidates[$i].Name)"
+    $ordered += @($candidates | Where-Object { $_.Name -notin $preferred })
+    foreach ($candidate in $ordered) {
+        if (Test-ReferenceGame $candidate.FullName) {
+            $GameDir = $candidate.FullName
+            Write-Host "Automatically found build references: $GameDir" -ForegroundColor Cyan
+            break
         }
-        $selected = Read-Host 'Instance number'
-        $number = 0
-        if (-not [int]::TryParse($selected, [ref]$number) -or
-            $number -lt 1 -or $number -gt $candidates.Count) {
-            throw "Invalid instance number."
-        }
-        $GameDir = $candidates[$number - 1].FullName
+    }
+    if ([string]::IsNullOrWhiteSpace($GameDir)) {
+        throw "No compatible generated interop found. Run a BepInEx-prepared RM instance once before building."
     }
 }
 
@@ -76,21 +88,7 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $output)) {
 }
 Write-Host "Compiled DLL: $output" -ForegroundColor Green
 
-if ($Install) {
-    $running = @(Get-Process -Name 'vrclient','OrbusVR' -ErrorAction SilentlyContinue)
-    if ($running.Count -gt 0) { throw "Close ALL OrbusVR clients before copying a test plugin." }
-
-    $pluginFolder = Join-Path $GameDir 'BepInEx\plugins\OrbusRebornMenu'
-    New-Item -ItemType Directory -Force -Path $pluginFolder | Out-Null
-    $dll = Join-Path $pluginFolder 'OrbusRebornMenu.dll'
-    if (Test-Path $dll) {
-        $backup = $dll + '.previous-test'
-        Copy-Item -LiteralPath $dll -Destination $backup -Force
-        Write-Host "Previous test build saved: $backup" -ForegroundColor Yellow
-    }
-    Copy-Item -LiteralPath $output -Destination $dll -Force
-    Write-Host "Installed to ONLY the chosen test instance: $dll" -ForegroundColor Green
-    Write-Host "Launch from RM. Press CTRL+ALT+M and inspect BepInEx\LogOutput.log." -ForegroundColor Cyan
-} else {
-    Write-Host 'This command only built the DLL. Use -Install to copy to one selected test instance.' -ForegroundColor Gray
-}
+# Remember selected build references for future releases. No game files change.
+[IO.File]::WriteAllText($cachePath, $GameDir, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "Build completed. No game instance was changed." -ForegroundColor Green
+Write-Host "To publish for RM installs and automatic mod updates, run .\release.ps1." -ForegroundColor Cyan
