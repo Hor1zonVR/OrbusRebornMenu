@@ -47,7 +47,7 @@ Maintainers build/publish with `./release.ps1`: this automatically finds local B
 
 Once the headset UI and generic configuration editor are reliable, we'll remove RebornMenu from the ordinary catalogue and integrate it with RM's BepInEx preparation and companion repair flow. **That automatic installation is not yet implemented.**
 
-Full instructions: [v0.1 build, install and VR test](docs/PROTOTYPE_V01_TEST.md).
+Current test: [v0.2 native Settings installation, testing and rollback](docs/NATIVE_MODS_V020_TEST.md). The [v0.1 wrist prototype notes](docs/PROTOTYPE_V01_TEST.md) are archived.
 
 ## Documentation
 
