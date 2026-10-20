@@ -1,0 +1,42 @@
+name: Validate RebornMenu C# syntax
+
+on:
+  push:
+    branches: [main, feature/first-vr-runtime-prototype]
+    paths:
+      - "src/**"
+      - "build.ps1"
+      - "release.ps1"
+      - "tests/check-csharp-syntax.ps1"
+      - ".github/workflows/check-csharp-syntax.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/check-csharp-syntax.ps1"
+      - ".github/workflows/check-csharp-syntax.yml"
+
+jobs:
+  syntax-only:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Validate PowerShell build and publisher syntax
+        shell: pwsh
+        run: |
+          foreach ($path in @('build.ps1', 'release.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $path).Path, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.ToString() }
+              throw "PowerShell syntax invalid: $path"
+            }
+            Write-Host "PASS: $path syntax"
+          }
+      - name: Parse project source with Roslyn
+        shell: pwsh
+        run: ./tests/check-csharp-syntax.ps1
