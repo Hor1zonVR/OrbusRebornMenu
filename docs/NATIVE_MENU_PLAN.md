@@ -16,16 +16,33 @@ The new goal is a **Mods entry in Orbus's existing in-game Settings/menu navigat
 - The native player journal/inventory may also use PowerUI, which does **not** necessarily expose individual rendered menu controls as Unity Canvas children.
 - None of these findings prove a safe way to insert a working native Mods tab yet.
 
-## Next data collection — RebornCam v0.9.12
+## October 20 in-headset findings — RebornCam v0.9.12 capture COMPLETED
 
-RebornCam now contains a read-only **NativeMenuDiffInspector**.
+Source: private two-snapshot report `OrbusMenu_20261020_153745_994.txt` (not committed because it is a user-game diagnostic).
 
-1. With the actual Orbus menu CLOSED, press **Ctrl + Shift + I** once (baseline).
-2. Open the normal inventory/menu and its **Settings** tab.
-3. With Settings OPEN, press **Ctrl + Shift + I** again.
-4. Send one resulting `BepInEx/config/RebornCam/UIReports/OrbusMenu_*.txt`.
+- Captured 2026-10-20 15:37:39 (menu closed) and 15:37:45 (Settings open); scene stayed `BootstrapWeathermaker`, XR active.
+- 9,716 → 9,778 captured objects; 62 new, 6 newly active, none newly inactive, one reparented/renamed. `truncated=True`, so this is not an exhaustive Unity world scan.
+- New/activated `#RenderDeck-PowerUI` objects included a camera and several MeshFilter/MeshRenderer instances. `#PowerUI/Camera` was present. **Strong evidence the native menu's visible contents are PowerUI-rendered meshes**, not a normal collection of individual Unity UI buttons.
+- `PlayerRigv4/Player Menu/TVScreenContent` was active on layer 19 `UI-Interactable` and has a `UnityEngine.BoxCollider`; the `Player Menu` root itself showed only `Transform` in this report. **Do not assume the root component is the native PlayerMenu controller.**
+- Active native pointers:
+  - `PlayerRigv4/Controller (right)/Grabber/UIPointer` → `TVScreenContent`, distance approximately 0.39 m.
+  - `PlayerRigv4/Controller (left)/Grabber/UIPointer` → `TVScreenContent`, distance approximately 0.17 m.
+  These are raycast hits on the collider, **not proof of actual DOM click dispatch, button handler or permission to inject content**.
+- No individually named Settings tab/button hierarchy was identified in this report. The 68 relevant changes were mostly `New Game Object` PowerUI render meshes and `TVScreenContent` descendants.
 
-The report compares active/new UI objects, prioritises player Settings candidates, and includes selected native component names and pointer intersections. No need for the older separate OrbusVRInput file. If the UI is PowerUI document-based, that is the next investigation.
+### Revised primary technical path
+
+**Investigate the active PowerUI document and original menu navigation, not standalone Unity Canvas buttons.** A future Mods entry should ideally be an ordinary native HTML/PowerUI tab with the game's own input dispatch, parchment graphics, styles and controller beam.
+
+Read-only evidence must come first:
+
+1. Identify the live native menu owner and document from the installed client's generated IL2CPP type metadata, or use a verified read-only document observation. **Do not assume** the generic `PowerUI.Document/Element` model applies to Spades.
+2. In Spades, previous QuestHelper tests observed newer `Dom.Element.set_innerHTML` and `Dom.Document` APIs. That evidence concerns the *Missions container*, **not** the exact Settings/Mods-tab ownership. Inspect actual Settings IDs/class names and safe surrounding structure without uploading private inventory HTML or registering arbitrary callbacks.
+3. Observe the menu's native tab navigation and input event path. A `UIPointer` hitting the `TVScreenContent` box means the beam reaches the right surface; it does not establish how a DOM `onclick` handler fires.
+4. Only after the document and relevant tab element are positively verified, prototype a **single reversible Mods entry** in a *test-only* RebornMenu build. Avoid reparenting native item/mission nodes and repeated DOM mutation: QuestHelper previously documented duplication/freeze after unstable DOM edits.
+5. Confirm visually in VR with the existing game beam, navigation and close/back actions; then add read-only mod-list browsing, followed by generic BepInEx config editing. Test Community and Renewed independently.
+
+**No additional closed/open menu snapshots required at this stage.** Next diagnostic should be narrow PowerUI/DOM metadata capture rather than another broad Unity object dump.
 
 ## Conditional technical path
 
