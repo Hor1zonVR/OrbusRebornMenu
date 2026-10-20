@@ -31,8 +31,15 @@ public sealed class Plugin : BasePlugin
         // Critical: the old in-world rectangle, wrist M, custom cursor, and
         // temporary startup preview are NOT loaded or instantiated.
         NativeModsSettingsBridge.Start(Log);
-        Log.LogInfo("[RebornMenu] v0.2.1 native Settings diagnostics loaded.");
-        Log.LogInfo("[RebornMenu] No wrist rune, Unity UI canvas, controller polling, " +
+        if (EnableNativeDiagnostics.Value)
+        {
+            AddComponent<NativeSettingsProbeBehaviour>();
+            Log.LogInfo("[RebornMenu/Probe] Ctrl+Shift+F7 captures bounded native DOM " +
+                "node metadata on demand. Open Missions once, then Settings, " +
+                "and press the shortcut while the game window is focused.");
+        }
+        Log.LogInfo("[RebornMenu] native Settings v0.2.2 read-only document probe loaded.");
+        Log.LogInfo("[RebornMenu] No wrist rune, UI canvas, VR controller polling, " +
             "or independent laser is used. Other mods remain independent.");
     }
 }
