@@ -35,6 +35,8 @@ internal static class NativeModsSettingsBridge
     private static int _nearSettingsCandidates;
     private static int _observedHtmlWrites;
     private static int _probeCandidates;
+    private static readonly List<object> ObservedDocuments = new();
+    private static readonly HashSet<long> ObservedDocumentIds = new();
     private static readonly HashSet<long> BoundPointers = new();
     private static readonly List<object> KeepAlive = new();
 
@@ -169,7 +171,10 @@ internal static class NativeModsSettingsBridge
         {
             string id = ElementId(__instance);
             if (Plugin.EnableNativeDiagnostics.Value)
+            {
+                RememberDocument(__instance);
                 ObserveSettingsWrite(__instance, __0, id);
+            }
             if (!Plugin.EnableNativePrototype.Value) return;
 
             if (NativeSettingsMarkup.TryExtend(id, __0,
@@ -196,6 +201,156 @@ internal static class NativeModsSettingsBridge
                 ex.GetType().Name);
             _disabled = true;
         }
+    }
+
+    private static void RememberDocument(object element)
+    {
+        try
+        {
+            object? document = Member(element, "ownerDocument") ??
+                               Member(element, "document");
+            if (document == null) return;
+            long identity = PointerId(document);
+            if (!ObservedDocumentIds.Add(identity)) return;
+            if (ObservedDocuments.Count >= 3)
+            {
+                long oldId = PointerId(ObservedDocuments[0]);
+                ObservedDocumentIds.Remove(oldId);
+                ObservedDocuments.RemoveAt(0);
+            }
+            ObservedDocuments.Add(document);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Run once on explicit Ctrl+Shift+F7 with native Settings visible.
+    /// Inspects only previously observed PowerUI documents. It never reads
+    /// HTML/textContent, edits the DOM, enumerates Unity world objects,
+    /// or installs any other hooks. Caps node count, time and log output.
+    /// </summary>
+    internal static void CaptureDocumentSnapshot()
+    {
+        if (!Plugin.EnableNativeDiagnostics.Value) return;
+        try
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var documents = new List<object>(ObservedDocuments);
+
+            // Some editions expose the active native HTML document directly.
+            // Query just this known static type and property, never assemblies
+            // or all world objects during the user-triggered snapshot.
+            Type? powerUi = FindType("PowerUI.UI");
+            object? globalDocument = Member(powerUi, "document") ??
+                                     Member(powerUi, "Document");
+            if (globalDocument != null &&
+                !documents.Any(d => PointerId(d) == PointerId(globalDocument)))
+                documents.Add(globalDocument);
+
+            _log?.LogInfo("[RebornMenu/Probe] MANUAL native document snapshot: " +
+                "observed=" + ObservedDocuments.Count +
+                ", globalDocument=" + (globalDocument != null) +
+                ", documentsToInspect=" + documents.Count +
+                ". No DOM mutations performed.");
+
+            if (documents.Count == 0)
+            {
+                _log?.LogInfo("[RebornMenu/Probe] No native document was observed. " +
+                    "Visit Missions once, then Settings, and capture again.");
+                return;
+            }
+
+            int docIndex = 0;
+            foreach (object document in documents.Take(4))
+            {
+                if (stopwatch.ElapsedMilliseconds > 80) break;
+                docIndex++;
+                object? root = Member(document, "documentElement") ??
+                               Member(document, "body") ??
+                               Member(document, "firstChild");
+                _log?.LogInfo("[RebornMenu/Probe] Document " + docIndex +
+                    ": type=" + document.GetType().FullName +
+                    ", root=" + NodeMetadata(root));
+                if (root == null) continue;
+
+                var queue = new Queue<object>();
+                var seen = new HashSet<long>();
+                var first = new List<string>();
+                var relevant = new List<string>();
+                int visited = 0;
+                queue.Enqueue(root);
+                while (queue.Count > 0 && visited < 260 &&
+                       stopwatch.ElapsedMilliseconds <= 80)
+                {
+                    object node = queue.Dequeue();
+                    if (!seen.Add(PointerId(node))) continue;
+                    visited++;
+
+                    string id = Member(node, "id")?.ToString() ?? "";
+                    string classes = Member(node, "className")?.ToString() ?? "";
+                    string tag = Member(node, "tagName")?.ToString() ?? "";
+                    if (!string.IsNullOrWhiteSpace(tag))
+                    {
+                        string record = "#" + visited + " " +
+                            NodeMetadataFromValues(tag, id, classes);
+                        if (first.Count < 7) first.Add(record);
+                        string tokens = id + " " + classes;
+                        if (ContainsMenuHint(tokens) && relevant.Count < 18)
+                            relevant.Add(record);
+                    }
+
+                    object? child = Member(node, "firstChild");
+                    int siblings = 0;
+                    while (child != null && siblings++ < 60 &&
+                           visited + queue.Count < 260)
+                    {
+                        queue.Enqueue(child);
+                        object? next = Member(child, "nextSibling");
+                        if (next != null && PointerId(next) == PointerId(child))
+                            break;
+                        child = next;
+                    }
+                }
+
+                _log?.LogInfo("[RebornMenu/Probe] Document " + docIndex +
+                    " inspected=" + visited + ", queued=" + queue.Count +
+                    ", firstElements=" + first.Count +
+                    ", menuCandidates=" + relevant.Count +
+                    ", budgetMs=" + stopwatch.ElapsedMilliseconds + ".");
+                foreach (string record in first)
+                    _log?.LogInfo("[RebornMenu/Probe] Root sample: " + record);
+                foreach (string record in relevant)
+                    _log?.LogInfo("[RebornMenu/Probe] Menu candidate: " + record);
+            }
+
+            _log?.LogInfo("[RebornMenu/Probe] MANUAL snapshot complete; " +
+                "this is DOM metadata only, NOT proof of a safe native tab target.");
+        }
+        catch (Exception ex)
+        {
+            _log?.LogWarning("[RebornMenu/Probe] Snapshot aborted safely: " +
+                ex.GetType().Name);
+        }
+    }
+
+    private static bool ContainsMenuHint(string value)
+    {
+        const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
+        return value.IndexOf("setting", comparison) >= 0 ||
+               value.IndexOf("option", comparison) >= 0 ||
+               value.IndexOf("pref", comparison) >= 0 ||
+               value.IndexOf("tab", comparison) >= 0 ||
+               value.IndexOf("nav", comparison) >= 0 ||
+               value.IndexOf("menu", comparison) >= 0 ||
+               value.IndexOf("page", comparison) >= 0 ||
+               value.IndexOf("button", comparison) >= 0 ||
+               value.IndexOf("config", comparison) >= 0;
+    }
+
+    private static string NodeMetadataFromValues(string tag, string id, string classes)
+    {
+        return "{tag=" + SafeMetadata(tag) + ",id=" + SafeMetadata(id) +
+               ",class=" + SafeMetadata(classes) + "}";
     }
 
     // Read-only, bounded diagnostics. No DOM traversal, scene scanning, HTML
