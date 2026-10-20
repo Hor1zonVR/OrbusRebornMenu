@@ -15,6 +15,7 @@
 
 - [ ] \`OrbusRebornMenu\` BepInEx 6 IL2CPP plugin project builds against \`GameDir\`
 - [ ] Logs clean load on both game editions without modifying core Orbus UI
+- [x] Choose default opening interaction and native parchment look ([VR UX spec](VR_UX.md))
 - [ ] World-space panel can appear and disappear safely in real VR
 - [ ] Independent wrist-open and desktop fallback input; no collisions with RebornCam keys
 - [ ] VR laser/pointer focus + trigger, clear buttons and consistent scrolling

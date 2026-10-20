@@ -34,6 +34,7 @@ A third-party author **does not have to know RebornMenu exists** for their norma
 ## Documentation
 
 - [Architecture and VR interaction specification](docs/ARCHITECTURE.md)
+- [Wrist rune opener and native-feeling parchment UI design](docs/VR_UX.md)
 - [Developer guide and optional API/manifest contract](docs/DEVELOPER_API.md)
 - [Implementation milestones and acceptance tests](docs/ROADMAP.md)
 - [How RebornManager will install, repair and update RebornMenu](docs/RM_INTEGRATION.md)

@@ -46,7 +46,7 @@ Change loaded values through the typed registered config entry so BepInEx valida
 
 ### Level B: enhanced pages, optional for mod authors
 
-Mods may expose **declarative page metadata** (sections, tabs, explanatory cards, readouts, switches, sliders, colour/theme presets, buttons and preview slots) through the optional **RebornMenu extension contract**, described in [Developer integration](REBORNMENU_DEVELOPER_API.md).
+Mods may expose **declarative page metadata** (sections, tabs, explanatory cards, readouts, switches, sliders, colour/theme presets, buttons and preview slots) through the optional **RebornMenu extension contract**, described in [Developer integration](DEVELOPER_API.md).
 
 RebornMenu owns the **common visuals, inputs, value validation, persistence, accessibility and layout**. A mod owns its setting names, ranges, specialised preview data and narrowly scoped actions. A mod does **not** render raw unmanaged VR controls or replace the whole menu.
 
@@ -68,6 +68,8 @@ All overlays (CastMetrics, QuestHelper, GoblinTimer and future projects) should 
 - **Persistence:** use the mod's existing BepInEx config values (or documented sidecar section/keys). RebornMenu must not create a second conflicting truth for the same overlay. Missing menu must leave existing mod placement working.
 
 A mod must explicitly expose a safe **placement target** or transform adapter; RebornMenu **cannot automatically locate or drag arbitrary third-party render objects merely because a config file exists**. Without a provider, users edit the normal position/scale config entries through Level A.
+
+See the [approved wrist opener and parchment UX specification](VR_UX.md) for precise interaction steps, native style guidelines, safeguards and acceptance tests.
 
 ## 4. VR-first UI and controls
 
