@@ -1,45 +1,55 @@
-# RebornMenu v0.1 — local runtime test (experimental)
+# RebornMenu v0.1 — install and update through RebornManager
 
-> **Important:** This is a prototype branch. No public release, automatic RM install or third-party config editor is available yet.
+> **Experimental VR prototype.** The DLL source is still awaiting a full build against real IL2CPP game references and headset testing. Do **not** make RebornMenu a required core companion yet.
 
-The first DLL creates an independent, parchment-coloured world-space panel and a small left-wrist rune. It deliberately does **not** edit the game's built-in journal, menus, inventory or XR rig.
+## Regular mod workflow — no instance chosen during building
 
-## Build for a prepared RM instance
+RebornMenu is a normal, optional BepInEx client plugin until we have proven its VR UI and generic configuration editor. It is **not automatically installed when BepInEx is prepared yet**.
 
-1. Create a clean Community or Renewed instance in RM and install BepInEx.
-2. Launch the game once, then close it. Confirm `BepInEx/interop` exists.
-3. Clone the RebornMenu repo / switch to `feature/first-vr-runtime-prototype`.
-4. From the RebornMenu directory, run:
+- Changes are developed in this GitHub repository.
+- The maintainer runs `./release.ps1` on Windows to build from the newest `main` and publish **OrbusRebornMenu.dll** to GitHub Releases.
+- The build script **automatically finds and remembers a local BepInEx interop reference directory**. It does **not** ask for an installation destination and **never installs a DLL in any game**.
+- RM lists **RebornMenu** in **Client Mods**, and a normal stable release can be installed, updated, disabled or uninstalled for the instance you're managing.
+- A GitHub *prerelease* created with `./release.ps1 -Preview` deliberately does **not** appear in RM's stable catalogue. Use preview for experiments before promoting the version.
+- Once the runtime is stable, RM can manage it as a core companion, installed automatically after BepInEx initialization; normal BepInEx mods must not depend on it.
+
+### To publish a new version (maintainers)
+
+On Windows with Git, GitHub CLI and .NET SDK installed:
 
 ```powershell
-.\build.ps1 -GameDir "$env:LOCALAPPDATA\OrbusRebornModdingInstances\My Orbus Renewed" -Install
+git clone https://github.com/Hor1zonVR/OrbusRebornMenu.git
+cd OrbusRebornMenu
+.\release.ps1
 ```
 
-Use your **actual** RM instance path if it differs. The script changes only the specified instance when `-Install` is given. Run `.\build.ps1` without parameters to choose among detected instances; it never uploads interop files or alters your game's native UI.
+Or, in a repo you've already cloned:
 
-## First in-headset tests
+```powershell
+git switch main
+git pull --ff-only
+.\release.ps1
+```
 
-- Press **Ctrl+Alt+M** on desktop to open, close, and recenter a plain framed parchment board. **First check whether it is visible inside the VR headset**, not merely the monitor.
-- Turn the **underside of the left wrist** toward your headset to reveal a small brown "M" rune.
-- While looking at the rune, aim your right controller at it and press its trigger. The menu should open/close.
-- When the menu is visible, aim the right-controller pointer at the central **Test VR pointer** label and press the trigger; the status should become **VR pointer works!**
-- The **CLOSE** target is upper-right, and **RECENTER** is lower-left.
-- Repeat after teleporting or changing worlds, and verify you can cast and grab objects normally when the menu is closed.
+If the current version tag has already been released and there are actual plugin source changes, the publisher bumps its patch version automatically. It verifies the build succeeds **before** creating a release. `-GameDir` is an optional *compiler-reference override*, not a destination for installing the mod.
 
-The legacy Unity 2018 right-controller trigger mapping has **not** yet been verified on a Quest 3 via Link. The default uses `JoystickButton15`; it can be changed in `BepInEx/config/com.horizon.orbus.rebornmenu.cfg` under `RightTriggerJoystickButton` (0–19). Changing this requires relaunching or reloading if the runtime doesn't pick up the change. `ControllerPointerPitchDegrees` can be adjusted if the ray does not line up with your right controller.
+Once the DLL release exists, use **RM → your instance → Browse Client Mods → RebornMenu → Install/Update**. This is the ordinary RM workflow—no PowerShell file copying and no manual instance picker when you're already inside an instance.
 
-**Do not use this test build during important combat; we're verifying the controller input mapping first.** The prototype intentionally never intercepts or blocks game trigger input.
+### First VR tests
 
-## Logs and recovery
+- **Ctrl+Alt+M** opens/closes/recentres a basic framed parchment. Check if it appears **inside the headset**, not only on your monitor.
+- Turn the underside of your left wrist toward the headset. A small rune should appear.
+- Aim the other controller at the rune, press trigger, and test opening/closing.
+- Press **Test VR pointer** in the panel; confirm feedback reads *VR pointer works!*.
+- Recenter and close; test again after teleporting/scene changes.
+- Verify all normal combat and grabbing controls continue functioning with the menu closed.
 
-Check `BepInEx/LogOutput.log` for lines prefixed `[RebornMenu]`. Useful failure details: panel shown on monitor but not headset; wrist rune never visible; rune appears on wrong side; trigger maps to another button; controller pointer angle incorrect; objects appear behind parchment; fonts not visible.
+Legacy Unity 2018 trigger mapping is **unverified** with Quest 3 via Link. If the right trigger is not detected, check `BepInEx/config/com.horizon.orbus.rebornmenu.cfg` under `RightTriggerJoystickButton` (default `15`, supported `0–19`). Adjust `ControllerPointerPitchDegrees` if aiming is offset.
 
-To remove the prototype, close OrbusVR then delete only:
+The project is intentionally **not a generic config editor yet**. That comes after the menu can reliably open, close and accept VR interactions.
 
-`BepInEx/plugins/OrbusRebornMenu/OrbusRebornMenu.dll`
+### Logs and recovery
 
-Your other plugins and settings remain untouched.
+Inspect `BepInEx/LogOutput.log` for `[RebornMenu]`. If the prototype causes problems, close the game and disable **RebornMenu** in RM—do not alter the native Orbus files or other plugins.
 
-## What is intentionally missing
-
-This phase does not enumerate mods or change settings. Once the VR surface and input are proven, the next phase is universal BepInEx config discovery and editing, followed by optional custom pages and real HUD positioning.
+For technical issues, record: game edition/version, BepInEx log, whether the parchment was visible on the headset, left wrist rune orientation, trigger mapping, and any gameplay input interference.
