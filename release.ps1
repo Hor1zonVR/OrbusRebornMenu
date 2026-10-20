@@ -58,6 +58,8 @@ try {
     $version = $m.Groups['v'].Value
     $tag = "v$version"
 
+    & git fetch origin --tags
+    Assert-Exit 'Fetching release tags'
     $remoteTags = @(& git ls-remote --tags --refs origin 'refs/tags/v*')
     Assert-Exit 'Checking existing Git tags'
     $tags = @{}
