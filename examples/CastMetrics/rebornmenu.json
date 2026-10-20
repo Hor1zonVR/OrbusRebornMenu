@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "pluginGuid": "com.horizon.castmetrics",
+  "displayName": "CastMetrics",
+  "summary": "Spell-casting metrics above your wand",
+  "tabs": [
+    {
+      "id": "display",
+      "title": "Display",
+      "description": "Choose what is shown while casting.",
+      "controls": [
+        {
+          "id": "show-casts",
+          "kind": "toggle",
+          "title": "Casts per second",
+          "binding": { "section": "Display", "key": "ShowCastsPerSecond" }
+        },
+        {
+          "id": "hide-idle",
+          "kind": "toggle",
+          "title": "Hide when idle",
+          "binding": { "section": "Display", "key": "HideWhenIdle" }
+        },
+        {
+          "id": "idle-seconds",
+          "kind": "slider",
+          "title": "Hide after",
+          "description": "Seconds without a verified spell cast.",
+          "binding": { "section": "Display", "key": "IdleSeconds" }
+        },
+        {
+          "id": "display-scale",
+          "kind": "slider",
+          "title": "HUD scale",
+          "binding": { "section": "Display", "key": "Scale" }
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "title": "Metrics",
+      "controls": [
+        {
+          "id": "rolling-window",
+          "kind": "slider",
+          "title": "Rolling average window",
+          "description": "How many seconds contribute to the cast-rate calculation.",
+          "binding": { "section": "Metrics", "key": "RollingWindowSeconds" }
+        }
+      ]
+    },
+    {
+      "id": "placement",
+      "title": "Position",
+      "description": "Fine-tune position using sliders. A live grab mode requires an optional runtime provider.",
+      "controls": [
+        { "id": "x", "kind": "slider", "title": "Right / left", "binding": { "section": "Position", "key": "RightMeters" } },
+        { "id": "y", "kind": "slider", "title": "Up / down", "binding": { "section": "Position", "key": "UpMeters" } },
+        { "id": "z", "kind": "slider", "title": "Forward / back", "binding": { "section": "Position", "key": "ForwardMeters" } }
+      ]
+    }
+  ],
+  "placement": {
+    "title": "Wand HUD",
+    "scale": { "section": "Display", "key": "Scale" },
+    "offsetX": { "section": "Position", "key": "RightMeters" },
+    "offsetY": { "section": "Position", "key": "UpMeters" },
+    "offsetZ": { "section": "Position", "key": "ForwardMeters" },
+    "requiresRuntimeProvider": true
+  }
+}
