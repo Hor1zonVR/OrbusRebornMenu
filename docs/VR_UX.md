@@ -1,6 +1,6 @@
-# RebornMenu: wrist opener and native-feeling parchment UX
+# ARCHIVED: RebornMenu wrist opener and parchment prototype
 
-**Status:** design decision for first playable prototype. No visual or input interaction is claimed to be implemented yet.
+**Status: retired experimental design.** The wrist-rune/manual 3D parchment prototype was tested and found uncomfortable and visually broken. It is no longer the planned default UX. See the **[current native Orbus menu integration plan](NATIVE_MENU_PLAN.md)**. Historical details below are retained only as design reference, not as tasks to implement.
 
 ## Default entry point: discreet rune beneath the left wrist
 
