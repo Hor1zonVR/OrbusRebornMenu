@@ -1,0 +1,29 @@
+name: Validate proposed RebornMenu manifests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "examples/**"
+      - "schemas/**"
+      - "tests/**"
+      - ".github/workflows/validate-manifests.yml"
+  pull_request:
+    paths:
+      - "examples/**"
+      - "schemas/**"
+      - "tests/**"
+      - ".github/workflows/validate-manifests.yml"
+
+jobs:
+  check-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install schema checker
+        run: python -m pip install "jsonschema==4.23.0"
+      - name: Verify all example manifests
+        run: python tests/validate_manifests.py
