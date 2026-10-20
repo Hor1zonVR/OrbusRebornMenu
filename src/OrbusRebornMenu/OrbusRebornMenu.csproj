@@ -13,6 +13,7 @@
     <Reference Include="BepInEx.Core"><HintPath>$(GameDir)\BepInEx\core\BepInEx.Core.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="BepInEx.Unity.IL2CPP"><HintPath>$(GameDir)\BepInEx\core\BepInEx.Unity.IL2CPP.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Il2CppInterop.Runtime"><HintPath>$(GameDir)\BepInEx\core\Il2CppInterop.Runtime.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(GameDir)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Il2Cppmscorlib"><HintPath>$(GameDir)\BepInEx\interop\Il2Cppmscorlib.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GameDir)\BepInEx\interop\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
@@ -22,7 +23,13 @@
     <Reference Include="UnityEngine.XRModule" Condition="Exists('$(GameDir)\BepInEx\interop\UnityEngine.XRModule.dll')"><HintPath>$(GameDir)\BepInEx\interop\UnityEngine.XRModule.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
+  <!-- The initial hand-built panel is retired. Do not compile or load it. -->
+  <ItemGroup>
+    <Compile Remove="MenuRuntime.cs" />
+  </ItemGroup>
+
   <Target Name="ValidateReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GameDir)\BepInEx\core\0Harmony.dll')" Text="Harmony DLL required for the reversible native Settings hook." />
     <Error Condition="!Exists('$(GameDir)\BepInEx\core\BepInEx.Core.dll')" Text="Missing BepInEx. Pass -p:GameDir=YOUR_MODDED_GAME_FOLDER." />
     <Error Condition="!Exists('$(GameDir)\BepInEx\core\BepInEx.Unity.IL2CPP.dll')" Text="Missing BepInEx IL2CPP core." />
     <Error Condition="!Exists('$(GameDir)\BepInEx\interop\Il2Cppmscorlib.dll')" Text="Run the selected BepInEx game once to generate IL2CPP interop." />

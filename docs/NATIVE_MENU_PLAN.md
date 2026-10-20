@@ -2,6 +2,14 @@
 
 **Status: investigation and design. Not implemented yet.**
 
+## Latest implementation direction
+
+**RebornMenu v0.2.0 (currently on a feature branch)** is now the only place developing the in-game Mods UI. We are **not adding more RebornCam UI diagnostics**, as earlier broad scanning was disruptive during VR sessions.
+
+The new prototype reuses native PowerUI by intercepting only recognised Settings-content HTML writes. It appends a small Mods button and native-rendered panel, then attempts to bind the button to the game's normal DOM click pipeline. It doesn't create a world-space panel, independent cursor or laser, and never changes the game's own existing tab nodes. If Settings doesn't expose a supported content target, it fails closed. This is an initial **Settings-embedded entry**, not a confirmed top-level navigation tab.
+
+See [native Mods v0.2 test and rollback](NATIVE_MODS_V020_TEST.md). No new RebornCam-based test is required.
+
 ## Decision
 
 The original v0.1/v0.1.1 wrist-rune + manually constructed floating parchment proved uncomfortable: the menu was hard to read, text appeared detached, and the experiment drew a cursor without Orbus's normal controller beam. We are **retiring this opener and renderer** for future releases.

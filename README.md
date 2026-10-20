@@ -31,6 +31,14 @@ RebornManager → Select Instance → Install BepInEx
 
 A third-party author **does not have to know RebornMenu exists** for their normal BepInEx config to be discoverable.
 
+## Current experiment: native Orbus Settings Mods entry (v0.2.0)
+
+We're abandoning the unsuccessful v0.1 wrist-rune/floating-text experiment. The current code attempts a small **Mods entry inside the existing Orbus Settings PowerUI document**, using the game's own renderer and VR pointer. This is a guarded first test: it changes *only* recognised Settings HTML, otherwise leaves Orbus untouched. It does **not** depend on RebornCam.
+
+**Not yet proven in VR or released as a compiled v0.2.0 DLL.** Until we identify the precise native Settings tab container, it isn't guaranteed to appear as a top-level tab. The first page is an interaction test, not yet a full settings editor.
+
+See [v0.2 native Mods tab testing and rollback](docs/NATIVE_MODS_V020_TEST.md).
+
 ## Standalone mod first, automatic companion later
 
 During VR testing, RebornMenu is a **normal optional client mod in RebornManager**. We'll publish a compiled DLL through [GitHub Releases](https://github.com/Hor1zonVR/OrbusRebornMenu/releases), and RM will install and update it like CastMetrics or QuestHelper.
