@@ -8,7 +8,7 @@
 
 **RebornManager** will eventually install RebornMenu as a **core companion** whenever it prepares an OrbusVR instance with BepInEx. Players won't have to search the mod library for a separate menu plugin. **RebornManager and other mods must continue working without it.**
 
-In VR, open a wrist-accessible **Mods** menu. Browse your loaded mods, select one, and edit its settings through a consistent interface.
+In VR, the **current design goal** is to open Mods from Orbus's existing in-game Settings/menu navigation, using its native appearance and controller pointer when technically possible. The earlier wrist-rune prototype has been retired. Browse your loaded mods, select one, and edit its settings through a consistent interface.
 
 - **Any BepInEx mod:** ordinary \`Config.Bind(...)\` entries automatically get basic settings controls (toggle, slider for a declared range, dropdown for a declared value list, text input, reset).
 - **Mods with custom pages:** optional declarative config-page layout, with nicer grouping and explanatory text.
@@ -21,7 +21,7 @@ In VR, open a wrist-accessible **Mods** menu. Browse your loaded mods, select on
 \`\`\`text
 RebornManager → Select Instance → Install BepInEx
                                   └─ RebornMenu automatically installed (when released)
-                                       └─ Start OrbusVR → Open Mods on wrist
+                                       └─ Start OrbusVR → Settings → Mods (planned)
                                             ├─ CastMetrics
                                             ├─ QuestHelper
                                             ├─ RebornCam
@@ -44,7 +44,8 @@ Full instructions: [v0.1 build, install and VR test](docs/PROTOTYPE_V01_TEST.md)
 ## Documentation
 
 - [Architecture and VR interaction specification](docs/ARCHITECTURE.md)
-- [Wrist rune opener and native-feeling parchment UI design](docs/VR_UX.md)
+- [Current: native Orbus Settings integration plan](docs/NATIVE_MENU_PLAN.md)
+- [Retired: early wrist-rune prototype design](docs/VR_UX.md)
 - [Developer guide and optional API/manifest contract](docs/DEVELOPER_API.md)
 - [Implementation milestones and acceptance tests](docs/ROADMAP.md)
 - [How RebornManager will install, repair and update RebornMenu](docs/RM_INTEGRATION.md)
