@@ -8,3 +8,4 @@
 *.zip
 .build-refs/
 BepInEx/
+.build-refs-path.txt
