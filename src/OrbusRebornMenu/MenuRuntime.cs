@@ -26,6 +26,13 @@ public sealed class MenuRuntime : MonoBehaviour
     private bool _warnedFont;
     private bool _wasTracking;
     private bool _startupLogged;
+    private bool _previewStarted;
+    private float _previewCloseAt;
+    private float _nextDiagnosticAt;
+    private float _nextErrorLogAt;
+    private int _previousJoystickMask;
+    private int _joystickReports;
+    private bool _loggedWristVisible;
 
     // Local panel coordinates, in metres before scale.
     private const float HalfWidth = 0.37f;
@@ -54,20 +61,28 @@ public sealed class MenuRuntime : MonoBehaviour
         {
             // Prevent one malformed transform or scene transition from
             // crashing the game or taking control of the XR rig.
-            if (Time.realtimeSinceStartup >= _nextCameraSearch)
+            if (Time.realtimeSinceStartup >= _nextErrorLogAt)
             {
-                _nextCameraSearch = Time.realtimeSinceStartup + 3f;
-                Plugin.Logger.LogWarning("[RebornMenu] Runtime input/frame skipped: " + ex.Message);
+                _nextErrorLogAt = Time.realtimeSinceStartup + 3f;
+                Plugin.Logger.LogWarning("[RebornMenu] Runtime input/frame skipped: " + ex);
             }
         }
     }
 
     private void Tick()
     {
-        bool keyboardToggle = Application.isFocused && Input.GetKeyDown(KeyCode.M) &&
+        bool diagnosticKey = Input.GetKeyDown(KeyCode.Insert);
+        bool chordKey = Input.GetKeyDown(KeyCode.M) &&
             (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) &&
             (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
-        if (keyboardToggle) Toggle();
+        if (diagnosticKey || chordKey)
+        {
+            Plugin.Logger.LogInfo("[RebornMenu] Keyboard opener detected: " +
+                (diagnosticKey ? "Insert" : "Ctrl+Alt+M") +
+                " | focused=" + Application.isFocused);
+            _previewStarted = true;
+            Toggle();
+        }
 
         if (_panel == null || _rune == null) return;
         Camera? eye = FindEyeCamera();
@@ -78,10 +93,43 @@ public sealed class MenuRuntime : MonoBehaviour
             return;
         }
 
+        if (!_previewStarted && Plugin.StartupPreview.Value &&
+            XRSettings.enabled && XRSettings.isDeviceActive &&
+            eye.name == "Camera (eye)")
+        {
+            _previewStarted = true;
+            Recenter(eye);
+            _menuOpen = true;
+            _panel.SetActive(true);
+            _previewCloseAt = Time.realtimeSinceStartup + 25f;
+            Plugin.Logger.LogInfo("[RebornMenu] AUTO-OPENED startup preview for 25s" +
+                " | eye=" + eye.name + " | panel=" + _panel.transform.position +
+                " | eyeMask=0x" + eye.cullingMask.ToString("X8") +
+                " | panelLayer=" + _panel.layer);
+        }
+
+        if (_previewCloseAt > 0f && Time.realtimeSinceStartup >= _previewCloseAt)
+        {
+            Plugin.Logger.LogInfo("[RebornMenu] Startup preview complete; closing panel.");
+            Close();
+        }
+
         if (_menuOpen)
         {
             _panel.transform.localScale = Vector3.one * Plugin.MenuScale.Value;
             if (!_panel.activeSelf) _panel.SetActive(true);
+        }
+
+        if (Time.realtimeSinceStartup >= _nextDiagnosticAt)
+        {
+            _nextDiagnosticAt = Time.realtimeSinceStartup + 15f;
+            Plugin.Logger.LogInfo("[RebornMenu] Status: eye=" + eye.name +
+                " | stereo=" + eye.stereoEnabled +
+                " | focused=" + Application.isFocused +
+                " | XRactive=" + XRSettings.isDeviceActive +
+                " | menuOpen=" + _menuOpen + " | wristVisible=" + _wristVisible +
+                " | panelLayer=" + _panel.layer + " | eyeMask=0x" +
+                eye.cullingMask.ToString("X8"));
         }
 
         if (!XRSettings.enabled || !XRSettings.isDeviceActive)
@@ -105,15 +153,27 @@ public sealed class MenuRuntime : MonoBehaviour
             Vector3 runePos = leftPos + leftRot * new Vector3(0f, -0.055f, -0.075f);
             Vector3 wristNormal = leftRot * Vector3.down;
             _rune.transform.position = runePos;
-            _rune.transform.rotation = Quaternion.LookRotation(wristNormal, eye.transform.up) *
-                                       Quaternion.Euler(0f, 180f, 0f);
-
             Vector3 towardsHead = eye.transform.position - runePos;
-            bool facing = towardsHead.sqrMagnitude > 0.0001f &&
-                          Vector3.Dot(wristNormal, towardsHead.normalized) > 0.32f;
+            _rune.transform.rotation = Quaternion.LookRotation(
+                towardsHead.normalized, eye.transform.up) *
+                Quaternion.Euler(0f, 180f, 0f);
+
+            // First headset test: keep this forgiving. Old implementation
+            // assumed a strict controller-local "palm down" direction that
+            // can be inverted on Oculus and hide the rune permanently.
+            Vector3 toWrist = runePos - eye.transform.position;
+            bool inView = toWrist.sqrMagnitude > 0.0001f &&
+                          Vector3.Dot(eye.transform.forward, toWrist.normalized) > 0.20f;
             float distance = towardsHead.magnitude;
-            SetWristVisible(Plugin.ShowWristRune.Value && facing &&
-                distance > 0.09f && distance < 0.85f);
+            SetWristVisible(Plugin.ShowWristRune.Value && inView &&
+                distance > 0.09f && distance < 0.90f);
+            if (_wristVisible && !_loggedWristVisible)
+            {
+                _loggedWristVisible = true;
+                Plugin.Logger.LogInfo("[RebornMenu] Left wrist rune became visible." +
+                    " | dist=" + distance.ToString("0.00") +
+                    " | at=" + runePos.ToString());
+            }
         }
 
         bool rightTracking = TryWorldHand(XRNode.RightHand, eye,
@@ -124,6 +184,24 @@ public sealed class MenuRuntime : MonoBehaviour
             Plugin.Logger.LogInfo("[RebornMenu] Legacy XR left/right tracking available.");
         }
 
+        // Record *actual* joystick button transitions for this Oculus runtime.
+        // v0.1 assumed button 15 is the trigger without evidence.
+        int pressedMask = 0;
+        for (int i = 0; i < 20; i++)
+        {
+            if (Input.GetKey((KeyCode)((int)KeyCode.JoystickButton0 + i)))
+                pressedMask |= 1 << i;
+        }
+        int newPresses = pressedMask & ~_previousJoystickMask;
+        _previousJoystickMask = pressedMask;
+        if (newPresses != 0 && _joystickReports < 24)
+        {
+            _joystickReports++;
+            Plugin.Logger.LogInfo("[RebornMenu] Joystick button down: mask=0x" +
+                newPresses.ToString("X8") + " | indices=" +
+                DescribeButtons(newPresses) +
+                " | configuredTrigger=" + Plugin.RightTriggerButton.Value);
+        }
         bool pressed = Application.isFocused &&
             Input.GetKey((KeyCode)((int)KeyCode.JoystickButton0 +
                                     Plugin.RightTriggerButton.Value));
@@ -185,10 +263,13 @@ public sealed class MenuRuntime : MonoBehaviour
 
     private Camera? FindEyeCamera()
     {
-        if (_eyeCamera != null && _eyeCamera.isActiveAndEnabled)
+        if (_eyeCamera != null && _eyeCamera.isActiveAndEnabled &&
+            _eyeCamera.name == "Camera (eye)")
             return _eyeCamera;
+        // Bootstrap cameras can be active before the player's real VR rig.
+        // Retry instead of caching a stereo bootstrap camera forever.
         if (Time.realtimeSinceStartup < _nextCameraSearch)
-            return _eyeCamera;
+            return _eyeCamera != null && _eyeCamera.isActiveAndEnabled ? _eyeCamera : null;
         _nextCameraSearch = Time.realtimeSinceStartup + 1f;
         _eyeCamera = null;
 
@@ -247,6 +328,18 @@ public sealed class MenuRuntime : MonoBehaviour
         return true;
     }
 
+    private static string DescribeButtons(int mask)
+    {
+        string result = "";
+        for (int i = 0; i < 20; i++)
+        {
+            if ((mask & (1 << i)) == 0) continue;
+            if (result.Length > 0) result += ",";
+            result += i.ToString();
+        }
+        return result;
+    }
+
     private void Toggle()
     {
         if (_menuOpen)
@@ -260,6 +353,7 @@ public sealed class MenuRuntime : MonoBehaviour
             Plugin.Logger.LogWarning("[RebornMenu] Cannot open: no working camera yet.");
             return;
         }
+        _previewCloseAt = 0f;
         Recenter(eye);
         _menuOpen = true;
         _panel?.SetActive(true);
@@ -270,6 +364,7 @@ public sealed class MenuRuntime : MonoBehaviour
     private void Close()
     {
         _menuOpen = false;
+        _previewCloseAt = 0f;
         _panel?.SetActive(false);
         SetCursorVisible(false);
         Plugin.Logger.LogInfo("[RebornMenu] CLOSED test parchment.");
@@ -350,7 +445,7 @@ public sealed class MenuRuntime : MonoBehaviour
         CreateText(_panel.transform, "CloseText", "X CLOSE", new Vector3(0.26f, 0.24f, 0.015f),
             22, new Color(0.94f, 0.86f, 0.69f));
         CreateText(_panel.transform, "Body",
-            "REBORN MENU    v0.1.0\n\n" +
+            "REBORN MENU    v0.1.1\n\n" +
             "Orbus-style interface test\n" +
             "VR settings pages coming next.\n\n" +
             "Left wrist rune: open / close",
@@ -366,7 +461,7 @@ public sealed class MenuRuntime : MonoBehaviour
             new Vector3(-0.33f, -0.136f, 0.016f), 23,
             new Color(0.28f, 0.19f, 0.12f));
         _hint = CreateText(_panel.transform, "Hint",
-            "Ctrl + Alt + M  |  Right controller trigger",
+            "Insert / Ctrl+Alt+M  |  VR trigger",
             new Vector3(-0.080f, -0.181f, 0.016f), 21,
             new Color(0.28f, 0.19f, 0.12f));
         _panel.SetActive(false);

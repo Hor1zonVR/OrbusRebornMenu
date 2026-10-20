@@ -35,9 +35,17 @@ If the current version tag has already been released and there are actual plugin
 
 Once the DLL release exists, use **RM → your instance → Browse Client Mods → RebornMenu → Install/Update**. This is the ordinary RM workflow—no PowerShell file copying and no manual instance picker when you're already inside an instance.
 
+### v0.1.1: What happens automatically
+
+On the first real **Camera (eye)** frame, RebornMenu automatically opens a parchment test panel for **25 seconds**. This is **temporary diagnostic behavior**, not the intended production experience. Change `Diagnostics → ShowStartupPreview` to `false` after confirming the panel appears.
+
+You can also open and close it with the **Insert** key or **Ctrl+Alt+M**, with the game window selected. If it never appears, the BepInEx log now distinguishes **AUTO-OPENED**, **Keyboard opener detected**, **Status: eye=...**, and **Left wrist rune became visible**.
+
+To find the real Quest 3 right-trigger mapping, press the right trigger several times and check RebornMenu's **Joystick button down** log lines. They contain the detected button indices. The old hard-coded `JoystickButton15` has *not* been proven correct: don't repeatedly edit config values blindly.
+
 ### First VR tests
 
-- **Ctrl+Alt+M** opens/closes/recentres a basic framed parchment. Check if it appears **inside the headset**, not only on your monitor.
+- The v0.1.1 parchment should open itself for 25 seconds after the real eye camera is ready. **Insert** or **Ctrl+Alt+M** can also toggle it. Check if it appears **inside the headset**, not only on your monitor.
 - Turn the underside of your left wrist toward the headset. A small rune should appear.
 - Aim the other controller at the rune, press trigger, and test opening/closing.
 - Press **Test VR pointer** in the panel; confirm feedback reads *VR pointer works!*.
