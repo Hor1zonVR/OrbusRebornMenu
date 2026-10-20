@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Hor1zonVR/OrbusRebornMenu/blob/main/schemas/rebornmenu.schema.json",
+  "title": "RebornMenu declarative mod page manifest (proposed v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "pluginGuid", "tabs"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "pluginGuid": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[A-Za-z0-9_.-]+$" },
+    "displayName": { "type": "string", "maxLength": 100 },
+    "summary": { "type": "string", "maxLength": 500 },
+    "tabs": {
+      "type": "array",
+      "maxItems": 30,
+      "items": { "$ref": "#/$defs/tab" }
+    },
+    "placement": { "$ref": "#/$defs/placement" }
+  },
+  "$defs": {
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section", "key"],
+      "properties": {
+        "section": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "key": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "binding"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9_-]+$" },
+        "kind": { "enum": ["toggle", "slider", "number", "select", "text", "readout"] },
+        "title": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 500 },
+        "binding": { "$ref": "#/$defs/binding" }
+      }
+    },
+    "tab": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "controls"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9_-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 500 },
+        "controls": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/control" } }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "requiresRuntimeProvider", "scale", "offsetX", "offsetY", "offsetZ"],
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "requiresRuntimeProvider": { "type": "boolean", "const": true },
+        "scale": { "$ref": "#/$defs/binding" },
+        "offsetX": { "$ref": "#/$defs/binding" },
+        "offsetY": { "$ref": "#/$defs/binding" },
+        "offsetZ": { "$ref": "#/$defs/binding" }
+      }
+    }
+  }
+}
