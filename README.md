@@ -31,6 +31,16 @@ RebornManager → Select Instance → Install BepInEx
 
 A third-party author **does not have to know RebornMenu exists** for their normal BepInEx config to be discoverable.
 
+## Standalone mod first, automatic companion later
+
+During VR testing, RebornMenu is a **normal optional client mod in RebornManager**. We'll publish a compiled DLL through [GitHub Releases](https://github.com/Hor1zonVR/OrbusRebornMenu/releases), and RM will install and update it like CastMetrics or QuestHelper.
+
+Maintainers build/publish with `./release.ps1`: this automatically finds local BepInEx compilation references and **never installs into a particular instance**. Players simply open an instance in RM and choose **Client Mods → RebornMenu → Install**. Its built-in normal mod updater handles later stable releases.
+
+Once the headset UI and generic configuration editor are reliable, we'll remove RebornMenu from the ordinary catalogue and integrate it with RM's BepInEx preparation and companion repair flow. **That automatic installation is not yet implemented.**
+
+Full instructions: [v0.1 build, install and VR test](docs/PROTOTYPE_V01_TEST.md).
+
 ## Documentation
 
 - [Architecture and VR interaction specification](docs/ARCHITECTURE.md)
