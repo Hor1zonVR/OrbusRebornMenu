@@ -5,7 +5,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusRebornMenu;
 
-[BepInPlugin("com.horizon.orbus.rebornmenu", "RebornMenu", "0.1.0")]
+[BepInPlugin("com.horizon.orbus.rebornmenu", "RebornMenu", "0.1.1")]
 public sealed class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
@@ -14,6 +14,7 @@ public sealed class Plugin : BasePlugin
     internal static ConfigEntry<int> RightTriggerButton = null!;
     internal static ConfigEntry<float> PointerPitch = null!;
     internal static ConfigEntry<bool> ShowWristRune = null!;
+    internal static ConfigEntry<bool> StartupPreview = null!;
 
     public override void Load()
     {
@@ -32,10 +33,13 @@ public sealed class Plugin : BasePlugin
         ShowWristRune = Config.Bind("Input", "ShowLeftWristRune", true,
             "Show a small rune under your left wrist when its face is turned towards the headset.");
 
+        StartupPreview = Config.Bind("Diagnostics", "ShowStartupPreview", true,
+            "Show the test parchment for 25 seconds after the real VR eye camera becomes ready. Disable after confirming it renders.");
+
         // Independent of the game's native journal, PowerUI or XR rig hierarchy.
         AddComponent<MenuRuntime>();
-        Log.LogInfo("[RebornMenu] v0.1.0 experimental VR prototype loaded.");
-        Log.LogInfo("[RebornMenu] CTRL+ALT+M opens/recenters/closes parchment; VR right-trigger mapping is experimental.");
+        Log.LogInfo("[RebornMenu] v0.1.1 visibility/input diagnostic build loaded.");
+        Log.LogInfo("[RebornMenu] INSERT or CTRL+ALT+M opens/closes parchment; startup preview runs once when the real VR camera is ready.");
         Log.LogInfo("[RebornMenu] This build does not edit configs or auto-install through RM yet.");
     }
 }
