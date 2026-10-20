@@ -72,7 +72,24 @@ try {
         $changed = @(& git diff --name-only $tag HEAD -- 'src/OrbusRebornMenu')
         Assert-Exit 'Checking plugin source changes'
         if ($changed.Count -eq 0) {
-            throw "$tag already exists with identical mod source. Make a code change before publishing another version."
+            # A previously tested GitHub preview can become the stable release
+            # visible in RM without recompiling or uploading a different DLL.
+            if (-not $Preview) {
+                $existing = (& gh release view $tag --repo $repo --json tagName,isPrerelease,assets,url) |
+                    ConvertFrom-Json
+                Assert-Exit 'Inspecting existing preview release'
+                if ($existing.isPrerelease -and
+                    @($existing.assets | Where-Object { $_.name -eq 'OrbusRebornMenu.dll' }).Count -eq 1) {
+                    $releaseMeta = (& gh api "repos/$repo/releases/tags/$tag") |
+                        ConvertFrom-Json
+                    Assert-Exit 'Reading preview release ID'
+                    & gh api --method PATCH "repos/$repo/releases/$($releaseMeta.id)" -F prerelease=false -f make_latest=true
+                    Assert-Exit 'Promoting tested preview to RM-compatible stable'
+                    Write-Host "Promoted $tag to stable. Refresh RM Client Mods to install." -ForegroundColor Green
+                    return
+                }
+            }
+            throw "$tag already exists with identical mod source. Change the plugin before publishing another version."
         }
 
         $v = $version.Split('.')
