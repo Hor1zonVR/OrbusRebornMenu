@@ -43,10 +43,77 @@ RebornMenu should feel like another Orbus journal page—not a desktop settings 
 - Any redistributed artwork must be original or used with permission/licence.
 - The panel is a world-space Unity object, not a screen-space IMGUI window; desktop debug UI is only a testing fallback.
 
+## Grounded visual reference: real OrbusVR screenshots (20 October 2026)
+
+These details come from the player's **actual screenshots of OrbusVR mission, inventory, achievements, tooltip and quest-book interfaces**. Treat these as the primary visual reference rather than generic medieval/parchment concept art. The screenshot files live in the user's conversation; this documentation records observed details but does not redistribute game screenshot assets.
+
+### Two distinct native UI styles
+
+**A — framed parchment boards (use as the MAIN RebornMenu style)**
+
+- The Missions and Inventory panels are independent, fairly flat rectangular boards with a **muted greige / tan parchment surface**, weathered slightly uneven edges, thin dark brown wooden/metal-looking perimeter and corner detailing.
+- The game does **not** use an extravagant fantasy scroll frame, a glowing border or heavily skeuomorphic leather book on these panels.
+- Navigation uses **small raised brown tabs along the top**: *Equipment*, *Talents*, *Missions*, *Achievements*. The selected tab has a restrained amber/gold highlight rather than a large solid-colour switch.
+- Between the boards sits a column of **square, softly rounded brown icon tabs** with simple cream pictograms (person, bag, people, envelope, gear, information, X). Their border/embossed shadow supplies the sense of depth.
+- Inventory items live in **small inset brown/tan square slots** with a dark outer rim and slight bevel. Active selection is a fine amber outline; inactive slots are darker. We should adapt this slot language to mod icons, toggles and selectable options.
+- Text is straightforward and legible, with bright off-white headings on some board sections and **dark brown/black ink** for supporting tooltip/quest text. Do not introduce cursive fantasy fonts merely for atmosphere.
+- Some native boards have a **narrow pale-blue vertical scrollbar** on one edge. Use a similarly thin scrollbar as a restrained affordance; never an oversized bright blue widget.
+- The floating tooltip is a small **dark brown rectangular inset with a thick border and subtly rounded corners**, containing white/off-white text and restrained cyan accents. This is a good model for setting descriptions and compatibility warnings.
+
+**B — free-floating quest book pages (use for HELP / DOCUMENTATION, not primary mod controls)**
+
+- A separate quest journal appears as two joined warm ochre parchment pages, with **black serif-like / illustrated compact text**, a narrow centre seam, light paper creases and no heavy frame.
+- Under the opened pages is a row of bright category icons (Quests, Map, Recipes, Spells, Class Info). This appearance is distinctive, but putting sliders and VR controls onto tiny journal text would be difficult to read and inconsistent with the game's settings board.
+- Use this open-book look for optional first-use help, mod instructions, or credits only if it can be rendered clearly at VR scale.
+
+### First implementation choice
+
+**One self-contained framed parchment board**, summoned by the left-wrist rune and rendered as a Unity world-space panel, with a native-looking top tab row:
+
+```text
+  [ Mods ]  [ Settings ]  [ Appearance ]                  [ X ]
+╭────────────────────────────────────────────────────────────╮
+│                       Installed Mods                       │
+│                                                            │
+│   [▣] CastMetrics                              ›           │
+│   [▣] QuestHelper                              ›           │
+│   [▣] RebornCam                                ›           │
+│   [▣] GoblinTimer                              ›           │
+│                                                            │
+│   ───────────────────────────────────────────────────      │
+│   Recenter                           Settings   Help       │
+╰────────────────────────────────────────────────────────────╯
+```
+
+On selecting CastMetrics, reuse the **same board** and replace its content with appropriately grouped config controls. Don't spawn the game's actual inventory or move native PlayerMenu/PowerUI objects. A dedicated panel may borrow the *visual styling* but owns its own rendering, hit areas and input.
+
+### Approximate colour targets (reference, not final measured game asset values)
+
+| UI role | Screenshot-derived starting point |
+| --- | --- |
+| Main board paper | muted warm greige ~ `#998770` (shading/textures make values vary) |
+| Raised navigation tabs | mid-to-dark brown `#60482F` |
+| Border/wood rim | deeper weathered brown `#5A4129` |
+| Printed dark ink | near-black warm brown `#231B14` |
+| Hover/selected highlight | thin muted golden-amber `#D8A437` |
+| Off-white heading/icons | parchment-cream `#E5D8BC` |
+| Tooltip plate | deep warm brown `#3B2E21` |
+| Optional scrollbar | muted desaturated pale blue, used sparingly |
+
+Palette swatches are **rough visual matches from the screenshots**, not a claim of original game texture/material RGB values. Prefer referencing the game's already-loaded permitted UI textures/fonts at runtime; if unavailable, use an original UI asset pack tuned against these screenshots.
+
+### Readability and interaction lessons from screenshots
+
+- Real native Orbus panels have compact labels, but our **VR configuration values must be larger than tiny native quest-book text**. Keep the native shapes and textures; give buttons, sliders and labels adequate spacing/contrast.
+- Never layer unfinished mod text directly over the existing Missions panel. Screenshots of early QuestHelper work show how loose white/cyan labels can overlap native Missions/Achievements tabs; RebornMenu is its **own contained canvas**, not a loose text overlay.
+- Keep the centre of the panel uncluttered. Top tabs, small mod icon slots and a narrow side rail make more sense than numerous unrelated HUD elements.
+- A wrist ornament opener should borrow **the small brown raised-icon language** rather than resemble a floating modern blue pill button. The rune may softly highlight **only when the left wrist faces the player**, and cannot take normal casting input.
+- Save menu scale, recenter position and left/right wrist preference so smaller VR displays and seated players can use it.
+
 ## Layout of the parchment
 
 ```text
-┌──────────────────── The Mod Ledger ────────────────────┐
+┌──────────────────────── Mods ────────────────────────┐
 │  ‹ Back                         MODS        Close  ✕  │
 │                                                        │
 │  Your installed enchantments                            │
