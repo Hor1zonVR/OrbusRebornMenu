@@ -11,7 +11,7 @@ if (!(Test-Path $cs) -or !(Test-Path $base)) {
     throw "Could not locate Roslyn parser in SDK $sdkVersion"
 }
 $temp = Join-Path $env:RUNNER_TEMP "RebornMenuSyntax"
-dotnet new console -n Syntax -o $temp -f net8.0 --force
+dotnet new console -n Syntax -o $temp -f net10.0 --force
 if ($LASTEXITCODE -ne 0) { throw "Could not prepare the syntax test" }
 $proj = Join-Path $temp "Syntax.csproj"
 $xml = Get-Content -Raw $proj
