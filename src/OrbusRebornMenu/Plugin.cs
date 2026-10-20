@@ -10,6 +10,7 @@ public sealed class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
     internal static ConfigEntry<bool> EnableNativePrototype = null!;
+    internal static ConfigEntry<bool> EnableNativeDiagnostics = null!;
 
     public override void Load()
     {
@@ -21,10 +22,16 @@ public sealed class Plugin : BasePlugin
             "unmodified UI on next restart if disabled. This experimental version " +
             "does not edit other mods' settings yet.");
 
+        EnableNativeDiagnostics = Config.Bind(
+            "ExperimentalNativeSettings", "LogSettingsMetadata", true,
+            "Log at most 12 sanitized native Settings candidate node fingerprints " +
+            "to BepInEx/LogOutput.log. Never saves Settings HTML, input or player data. " +
+            "Restart required when changing this diagnostic option.");
+
         // Critical: the old in-world rectangle, wrist M, custom cursor, and
         // temporary startup preview are NOT loaded or instantiated.
         NativeModsSettingsBridge.Start(Log);
-        Log.LogInfo("[RebornMenu] v0.2.0 experimental native Settings tab loaded.");
+        Log.LogInfo("[RebornMenu] v0.2.1 native Settings diagnostics loaded.");
         Log.LogInfo("[RebornMenu] No wrist rune, Unity UI canvas, controller polling, " +
             "or independent laser is used. Other mods remain independent.");
     }
