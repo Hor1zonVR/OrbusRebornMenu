@@ -73,6 +73,9 @@ See the [approved wrist opener and parchment UX specification](VR_UX.md) for pre
 
 ## 4. VR-first UI and controls
 
+> **Current direction (October 2026):** the independent wrist-rune/hand-made world-space panel prototype is retired. Our first choice is a safe Mods entry within Orbus's existing Settings UI, reusing its VR pointer and available UI assets. The details below describe the original concept and may be outdated. See [the current native-menu integration plan](NATIVE_MENU_PLAN.md) for the required investigation and fallback rules.
+
+
 - World-space VR panel, large readable high-contrast text, predictable button hitboxes, scalable layout and page breadcrumbs: **Mods → Mod → Section / Custom page**.
 - A discreet **Mods** wrist button that can be reassigned/repositioned/hidden, plus an alternate **Recenter/Open menu** method so players cannot lose it. Configure wrist side and activation sensitivity.
 - Basic laser/pointer + trigger selection, scrolling and VR keyboard where available. No forced use of Quest-specific APIs: PCVR via SteamVR/Oculus/Quest Link is the initial platform.
