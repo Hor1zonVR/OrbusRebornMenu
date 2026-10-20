@@ -33,24 +33,26 @@ internal static class NativeModsSettingsBridge
     private static int _registered;
     private static int _failedBindings;
     private static int _nearSettingsCandidates;
+    private static int _observedHtmlWrites;
+    private static int _probeCandidates;
     private static readonly HashSet<long> BoundPointers = new();
     private static readonly List<object> KeepAlive = new();
 
     internal static void Start(ManualLogSource log)
     {
         _log = log;
-        if (!Plugin.EnableNativePrototype.Value)
+        if (!Plugin.EnableNativePrototype.Value && !Plugin.EnableNativeDiagnostics.Value)
         {
-            _log.LogInfo("[RebornMenu] Native Settings prototype disabled by config.");
+            _log.LogInfo("[RebornMenu] Native Settings bridge and diagnostics disabled.");
             return;
         }
 
         Type? legacy = FindType("PowerUI.Element");
         Type? modern = FindType("Dom.Element");
         Type? htmlDoc = FindType("PowerUI.HtmlDocument");
-        // Renewed may expose legacy compatibility classes even while its live
-        // menu is rendered through modern Dom.Element. Prefer that runtime.
-        Type? selected = htmlDoc != null && modern != null ? modern : legacy;
+        // Modern Dom.Element can exist even when HtmlDocument is absent.
+        // The old HtmlDocument gate incorrectly skipped that case.
+        Type? selected = modern ?? legacy;
         if (selected == null)
         {
             _log.LogWarning("[RebornMenu] No supported PowerUI Settings renderer. " +
@@ -81,9 +83,13 @@ internal static class NativeModsSettingsBridge
             _patch = new Harmony(HarmonyId);
             _patch.Patch(setter, prefix: new HarmonyMethod(prefix),
                 postfix: new HarmonyMethod(postfix));
-            _log.LogInfo("[RebornMenu] Native Settings v0.2 experimental hook ready: " +
-                selected.FullName + ".set_innerHTML. " +
-                "Only recognised Settings content can be extended.");
+            _log.LogInfo("[RebornMenu] Native Settings v0.2.1 hook ready: " +
+                selected.FullName + ".set_innerHTML; modern=" + (modern != null) +
+                "; legacy=" + (legacy != null) + "; htmlDocument=" + (htmlDoc != null) +
+                "; diagnostics=" + Plugin.EnableNativeDiagnostics.Value +
+                "; Mods injection=" + Plugin.EnableNativePrototype.Value + ".");
+            _log.LogInfo("[RebornMenu] Diagnostic records are bounded metadata only; " +
+                "no HTML, gameplay content or personal text is saved.");
         }
         catch (Exception ex)
         {
@@ -155,12 +161,17 @@ internal static class NativeModsSettingsBridge
 
     private static void BeforeSetHtml(object __instance, ref string __0)
     {
-        if (_disabled || !Plugin.EnableNativePrototype.Value ||
-            __instance == null || string.IsNullOrEmpty(__0)) return;
+        if (_disabled || __instance == null || string.IsNullOrEmpty(__0) ||
+            (!Plugin.EnableNativePrototype.Value && !Plugin.EnableNativeDiagnostics.Value))
+            return;
 
         try
         {
             string id = ElementId(__instance);
+            if (Plugin.EnableNativeDiagnostics.Value)
+                ObserveSettingsWrite(__instance, __0, id);
+            if (!Plugin.EnableNativePrototype.Value) return;
+
             if (NativeSettingsMarkup.TryExtend(id, __0,
                 out string extended, out string reason))
             {
@@ -185,6 +196,89 @@ internal static class NativeModsSettingsBridge
                 ex.GetType().Name);
             _disabled = true;
         }
+    }
+
+    // Read-only, bounded diagnostics. No DOM traversal, scene scanning, HTML
+    // capture, polling, or user-input hooks. Only called from the already
+    // installed native HTML setter. This intentionally cannot diagnose a
+    // Settings page that never uses that setter.
+    private static void ObserveSettingsWrite(object element, string html, string id)
+    {
+        try
+        {
+            int writes = ++_observedHtmlWrites;
+            if (writes <= 2)
+                _log?.LogInfo("[RebornMenu/Probe] HTML setter traffic #" + writes +
+                    ": type=" + element.GetType().FullName +
+                    ", id=" + SafeMetadata(id) + ", length=" + html.Length + ".");
+
+            if (_probeCandidates >= 12 || html.Length > 250_000) return;
+
+            // The probe checks a few fixed keywords, never records the HTML,
+            // and only inspects a maximum of two ancestors after a match.
+            const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
+            bool settingsId = id.IndexOf("setting", comparison) >= 0 ||
+                              id.IndexOf("option", comparison) >= 0 ||
+                              id.IndexOf("pref", comparison) >= 0;
+            bool hasSettings = html.IndexOf("settings", comparison) >= 0 ||
+                               html.IndexOf("preferences", comparison) >= 0;
+            bool hasControls = html.IndexOf("graphics", comparison) >= 0 ||
+                               html.IndexOf("volume", comparison) >= 0 ||
+                               html.IndexOf("locomotion", comparison) >= 0 ||
+                               html.IndexOf("comfort", comparison) >= 0 ||
+                               html.IndexOf("controller", comparison) >= 0;
+            if (!settingsId && !hasSettings && !hasControls) return;
+
+            _probeCandidates++;
+            object? parent = Member(element, "parentElement") ??
+                             Member(element, "parentNode");
+            object? grandparent = parent == null ? null :
+                                  (Member(parent, "parentElement") ??
+                                   Member(parent, "parentNode"));
+
+            _log?.LogInfo("[RebornMenu/Probe] Candidate #" + _probeCandidates +
+                " at HTML write #" + writes +
+                ", length=" + html.Length +
+                ", hints=" + (settingsId ? "target-id " : "") +
+                           (hasSettings ? "settings-markup " : "") +
+                           (hasControls ? "control-markup" : "") +
+                ", node=" + NodeMetadata(element) +
+                ", parent=" + NodeMetadata(parent) +
+                ", grandparent=" + NodeMetadata(grandparent) + ".");
+            if (_probeCandidates == 12)
+                _log?.LogInfo("[RebornMenu/Probe] Candidate log limit reached; " +
+                    "further HTML writes will not be logged.");
+        }
+        catch
+        {
+            // An observer failure must never affect the game's HTML setter.
+        }
+    }
+
+    private static string NodeMetadata(object? element)
+    {
+        if (element == null) return "<none>";
+        return "{tag=" + SafeMetadata(Member(element, "tagName")?.ToString()) +
+               ",id=" + SafeMetadata(Member(element, "id")?.ToString()) +
+               ",class=" + SafeMetadata(Member(element, "className")?.ToString()) + "}";
+    }
+
+    private static string SafeMetadata(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "<empty>";
+        var sb = new System.Text.StringBuilder(Math.Min(value.Length, 70));
+        foreach (char ch in value)
+        {
+            if (sb.Length == 70) break;
+            if ((ch >= 'a' && ch <= 'z') ||
+                (ch >= 'A' && ch <= 'Z') ||
+                (ch >= '0' && ch <= '9') ||
+                ch == '-' || ch == '_' || ch == '.' || ch == ':' ||
+                ch == ' ')
+                sb.Append(ch);
+            else sb.Append('?');
+        }
+        return sb.ToString();
     }
 
     private static void AfterSetHtml(object __instance, string __0)
