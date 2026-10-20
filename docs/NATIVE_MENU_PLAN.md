@@ -30,6 +30,15 @@ Source: private two-snapshot report `OrbusMenu_20261020_153745_994.txt` (not com
   These are raycast hits on the collider, **not proof of actual DOM click dispatch, button handler or permission to inject content**.
 - No individually named Settings tab/button hierarchy was identified in this report. The 68 relevant changes were mostly `New Game Object` PowerUI render meshes and `TVScreenContent` descendants.
 
+### Focused follow-up implementation (awaiting VR report)
+
+RebornCam **v0.9.13 source** introduces a temporary, opt-in read-only PowerUI observer (see [RebornCam PR #17](https://github.com/Hor1zonVR/OrbusRebornCamera/pull/17)):
+
+- `Ctrl + Shift + P` with native menu closed arms a maximum 60-second capture.
+- Open Settings, then press `Ctrl + Shift + P` again to save `OrbusPowerUI_*.txt` in `BepInEx/config/RebornCam/UIReports`.
+- Uses either legacy `PowerUI.Element.set_innerHTML` or modern `Dom.Element.set_innerHTML` when present, and records a capped summary of recognised tab/menu element IDs, CSS class tokens, document types and method signatures. It does **not** change game DOM, reuse the withdrawn wrist panel, or save original HTML.
+- **No Settings tab ID, click handler or working RebornMenu integration has been verified yet.** Wait for the report before adding any native Mods tab.
+
 ### Revised primary technical path
 
 **Investigate the active PowerUI document and original menu navigation, not standalone Unity Canvas buttons.** A future Mods entry should ideally be an ordinary native HTML/PowerUI tab with the game's own input dispatch, parchment graphics, styles and controller beam.
