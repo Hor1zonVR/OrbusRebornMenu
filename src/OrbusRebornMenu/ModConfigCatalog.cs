@@ -115,6 +115,20 @@ internal static class ModConfigCatalog
         // only when Mods opens/refreshes; never during a Unity frame loop.
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
+            string name;
+            try { name = assembly.GetName().Name ?? ""; }
+            catch { continue; }
+            // Massive Unity IL2CPP generated interop libraries contain tens
+            // of thousands of types, none of which are BepInEx mod entrypoints.
+            if (name.StartsWith("Il2Cpp", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("UnityEngine", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("System", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("mscorlib", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("Mono.", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("BepInEx.", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             Type[] types;
             try { types = assembly.GetTypes(); }
             catch (ReflectionTypeLoadException ex)
