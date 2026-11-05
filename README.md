@@ -46,11 +46,13 @@ The two FourOfSpades extension tabs sit above the original Orbus Settings tabs. 
 - Uses existing Orbus `settings-tab-control`, `settings-tab`, `compact option`, `menu-list`, headings and CSS assets.
 - Appends to the verified native PowerUI DOM, without replacing existing tab elements or their click handlers.
 - Narrowing the original four tabs to 104px, plus 8px spacing, lets all five fit the existing 570px tab header. If the runtime APIs cannot set those widths, Mods stays hidden to prevent overlap.
-- Initially exposes **Ability Labels > Smaller / Larger**, changing the loaded `OrbusAbilityLabels.Plugin.LabelScale` (`[Labels] Scale`, 0.50x–2.00x) via its existing BepInEx `ConfigEntry<float>`. No Ability Labels source changes required.
-- No full automatic mod settings browser or slider yet. Those come after the basic native tab/VR pointer test succeeds.
+- **Confirmed in-game:** Mods appears after Graphics and the first Ability Labels Smaller/Larger controls changed the live label size.
+- **Next experimental release:** left-hand installed-mod selector, right-hand per-mod settings, and an Orbus-style `rangeSlider` for Ability Labels Scale. Users can click a point on the slider to set a value; native pointer dragging is experimental until verified.
+- Generic BepInEx configuration discovery: supported bool, enum, and bounded int/float/double entries appear automatically without hardcoded RebornMenu pages. This needs headset verification. Free-form strings are deliberately omitted to avoid accidentally exposing private API keys.
+- See [Automatic mod settings for authors](docs/AUTOMATIC_MOD_SETTINGS.md) for the built-in contract and supported config types.
 - Safely leaves original UI alone when the recognised Settings document or tab identifiers are absent; emits one diagnostic warning in `BepInEx/LogOutput.log`.
 
-From any PowerShell folder, run `& "$env:USERPROFILE\OneDrive\Documents\OrbusRebornMenu\release.ps1"`, update RebornMenu in RebornManager, and open Settings in VR. Look for Mods immediately to the right of Graphics and test Larger/Smaller with Bard equipped. Send the `[RebornMenu]` lines from the log if missing or unresponsive.
+From any PowerShell folder, run `& "$env:USERPROFILE\OneDrive\Documents\OrbusRebornMenu\release.ps1"`, update RebornMenu in RebornManager, and open Settings in VR. Look for Mods immediately to the right of Graphics and test the new Ability Labels Scale slider with Bard equipped. Send the `[RebornMenu]` lines from the log if missing or unresponsive.
 
 To roll back without uninstalling, close the game and set `[NativeMods] EnableLiveModsTab = false` in `BepInEx/config/com.horizon.orbus.rebornmenu.cfg` then relaunch.
 
