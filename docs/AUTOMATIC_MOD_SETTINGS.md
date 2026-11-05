@@ -74,6 +74,31 @@ into logical `Config.Bind` sections and provide meaningful
 **Please share the exact `[RebornMenu]` log lines or a screenshot if a
 control is absent or unresponsive.** No large scene diagnostic is needed.
 
+## Player-facing settings versus developer diagnostics
+
+RebornMenu hides common internal-only sections in the VR menu:
+`Diagnostics`, `Investigation`, `Debug`, `Bard Inspector`,
+`ExperimentalNativeSettings`, and known deprecated compatibility
+switches. Those values are **not deleted** from the owning mod's config.
+
+If your plugin has a single player-facing setting in an internal section,
+put that setting into a normal section such as `General`, `Visuals`, or
+`Gameplay`. To explicitly hide a supported `Config.Bind` entry without
+requiring any RebornMenu dependency, use a `ConfigDescription` string tag:
+
+```csharp
+var developerCapture = Config.Bind(
+    "General", "EnableCapture", false,
+    new ConfigDescription(
+        "Development-only capture",
+        null,
+        "RebornMenu.Hide"));
+```
+
+For cleaning up **obsolete keys already on disk**, see
+[Scroll and obsolete-config cleanup](MODS_SCROLL_AND_CONFIG_CLEANUP.md).
+That operation is separate and opt-in, with backups.
+
 ## Safety and compatibility
 
 Only adds or refreshes elements owned by RebornMenu. It never rewrites
