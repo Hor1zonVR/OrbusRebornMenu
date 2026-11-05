@@ -23,8 +23,6 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private string _lastWaitReason = "";
     private bool _loggedFailure;
     private long _boundTab;
-    private long _boundMinus;
-    private long _boundPlus;
     private bool _layoutApplied;
     private string _lastBindingWarning = "";
     private object? _document;
