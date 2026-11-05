@@ -92,7 +92,7 @@ internal static class NativeModsSettingsBridge
                 selected.FullName + ".set_innerHTML; modern=" + (modern != null) +
                 "; legacy=" + (legacy != null) + "; htmlDocument=" + (htmlDoc != null) +
                 "; diagnostics=" + Plugin.EnableNativeDiagnostics.Value +
-                "; Mods injection=" + Plugin.EnableNativePrototype.Value + ".");
+                "; Mods injection=" + (Plugin.EnableNativePrototype.Value && UpperRowInsertionVerified) + ".");
             _log.LogInfo("[RebornMenu] Diagnostic records are bounded metadata only; " +
                 "no HTML, gameplay content or personal text is saved.");
         }
