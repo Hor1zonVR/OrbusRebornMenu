@@ -555,11 +555,15 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         {
             int selectedIndex = i;
             object? nav = ById(_document, "rm-mod-" + i);
-            if (nav == null || !NativeModsSettingsBridge.TryBindNativeClick(
+            if (nav == null)
+            {
+                ReportBindingProblem("Mod navigation " + i + ": node missing");
+                return;
+            }
+            if (!NativeModsSettingsBridge.TryBindNativeClick(
                     nav, () => SelectMod(selectedIndex), out string reason))
             {
-                ReportBindingProblem("Mod navigation " + i + ": " +
-                    (nav == null ? "node missing" : reason));
+                ReportBindingProblem("Mod navigation " + i + ": " + reason);
                 return;
             }
         }
@@ -672,12 +676,17 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                 {
                     int step = j;
                     object? zone = ById(_document, "rm-zone-" + i + "-" + j);
-                    if (zone == null ||
-                        !NativeModsSettingsBridge.TryBindNativeClick(zone,
+                    if (zone == null)
+                    {
+                        ReportBindingProblem("Slider point " + i + "/" + j +
+                            ": missing node");
+                        continue;
+                    }
+                    if (!NativeModsSettingsBridge.TryBindNativeClick(zone,
                             () => SetSliderStep(settingIndex, step), out string problem))
                     {
-                        ReportBindingProblem("Slider point " + i + "/" + j + ": " +
-                            (zone == null ? "missing" : problem));
+                        ReportBindingProblem("Slider point " + i + "/" + j +
+                            ": " + problem);
                         continue;
                     }
 
@@ -694,10 +703,11 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             else if (setting.Kind == "toggle")
             {
                 object? button = ById(_document, "rm-toggle-" + i);
-                if (button == null || !NativeModsSettingsBridge.TryBindNativeClick(
+                if (button == null)
+                    ReportBindingProblem("Toggle " + i + ": missing node");
+                else if (!NativeModsSettingsBridge.TryBindNativeClick(
                         button, () => ToggleSetting(settingIndex), out string problem))
-                    ReportBindingProblem("Toggle " + i + ": " +
-                        (button == null ? "missing" : problem));
+                    ReportBindingProblem("Toggle " + i + ": " + problem);
             }
             else if (setting.Kind == "enum")
             {
@@ -706,11 +716,12 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                 {
                     string name = names[j];
                     object? button = ById(_document, "rm-enum-" + i + "-" + j);
-                    if (button == null || !NativeModsSettingsBridge.TryBindNativeClick(
+                    if (button == null)
+                        ReportBindingProblem("Enum " + i + ": missing node");
+                    else if (!NativeModsSettingsBridge.TryBindNativeClick(
                             button, () => SelectEnum(settingIndex, name),
                             out string problem))
-                        ReportBindingProblem("Enum " + i + ": " +
-                            (button == null ? "missing" : problem));
+                        ReportBindingProblem("Enum " + i + ": " + problem);
                 }
             }
         }
