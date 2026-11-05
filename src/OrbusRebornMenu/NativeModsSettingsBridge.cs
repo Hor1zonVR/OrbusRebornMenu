@@ -247,6 +247,24 @@ internal static class NativeModsSettingsBridge
                 !documents.Any(d => PointerId(d) == PointerId(globalDocument)))
                 documents.Add(globalDocument);
 
+            // Target the ACTUAL game player-menu document, rather than
+            // depending on incidental innerHTML writes. The readable
+            // Community metadata names PlayerMenu.document; Renewed/Spades
+            // obfuscates the same public static field to ng.sew.
+            Type? playerMenu = FindType("ng") ?? FindType("PlayerMenu");
+            object? playerMenuDocument = Member(playerMenu, "sew") ??
+                                         Member(playerMenu, "document");
+            if (playerMenuDocument != null &&
+                !documents.Any(d => PointerId(d) == PointerId(playerMenuDocument)))
+                documents.Insert(0, playerMenuDocument);
+
+            _log?.LogInfo("[RebornMenu/Probe] PlayerMenu direct document: " +
+                "type=" + (playerMenu?.FullName ?? "<not found>") +
+                ", document=" + (playerMenuDocument?.GetType().FullName ?? "<none>") + ".");
+
+            if (playerMenuDocument != null)
+                LogKnownSettingsTabOrder(playerMenuDocument);
+
             _log?.LogInfo("[RebornMenu/Probe] MANUAL native document snapshot: " +
                 "observed=" + ObservedDocuments.Count +
                 ", globalDocument=" + (globalDocument != null) +
@@ -330,6 +348,48 @@ internal static class NativeModsSettingsBridge
         {
             _log?.LogWarning("[RebornMenu/Probe] Snapshot aborted safely: " +
                 ex.GetType().Name);
+        }
+    }
+
+    // Only inspect the known Settings header. Do not enumerate scene
+    // objects, dump HTML/text, reposition existing tabs, or modify PowerUI.
+    // Identifies the actual runtime order, INCLUDING tabs added by Spades.
+    private static void LogKnownSettingsTabOrder(object document)
+    {
+        try
+        {
+            object? header = ById(document, "settings-tab-controls");
+            if (header == null)
+            {
+                _log?.LogInfo("[RebornMenu/Probe] Settings tab header not in " +
+                    "live PlayerMenu document. No tab insertion attempted.");
+                return;
+            }
+
+            var items = new List<string>();
+            object? child = Member(header, "firstChild");
+            int visited = 0;
+            while (child != null && visited++ < 30)
+            {
+                string tag = Member(child, "tagName")?.ToString() ?? "";
+                if (!string.IsNullOrWhiteSpace(tag))
+                    items.Add(NodeMetadata(child));
+                object? next = Member(child, "nextSibling");
+                if (next != null && PointerId(next) == PointerId(child))
+                    break;
+                child = next;
+            }
+            _log?.LogInfo("[RebornMenu/Probe] LIVE settings-tab-controls: " +
+                items.Count + " element children; " +
+                "read-only, ordered left-to-right in DOM.");
+            for (int i = 0; i < items.Count; i++)
+                _log?.LogInfo("[RebornMenu/Probe] Live settings tab [" + i +
+                    "]: " + items[i]);
+        }
+        catch (Exception ex)
+        {
+            _log?.LogWarning("[RebornMenu/Probe] Settings tab inspection " +
+                "skipped: " + ex.GetType().Name);
         }
     }
 
