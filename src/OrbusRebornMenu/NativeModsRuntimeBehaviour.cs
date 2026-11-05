@@ -678,7 +678,9 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             }
             html.Append("<div style='margin-bottom:15px'>");
             html.Append("<p style='font-size:14px;margin-bottom:6px'>")
-                .Append(Escape(FriendlyName(setting.Name))).Append("</p>");
+                .Append(Escape(setting.DisplayName.Length > 0
+                    ? setting.DisplayName : FriendlyName(setting.Name)))
+                .Append("</p>");
             if (setting.Kind == "range")
             {
                 double value = ReadNumber(setting);
@@ -726,6 +728,12 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                         .Append(Escape(names[j])).Append("</li>");
                 html.Append("</ul>");
             }
+            // Optional display hints are supplied by the owning mod's
+            // ConfigDescription tags. They are escaped like all other
+            // config-controlled text, and require no RebornMenu dependency.
+            if (setting.Hint.Length > 0)
+                html.Append("<p style='font-size:12px;margin-top:4px;margin-bottom:6px'>")
+                    .Append(Escape(setting.Hint)).Append("</p>");
             html.Append("</div>");
             index++;
         }
