@@ -317,27 +317,35 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             _boundTab = Identity(tab);
         }
 
-        if (_minus == null || _boundMinus != Identity(_minus))
+        if (_minus == null)
+        {
+            ReportBindingProblem("Smaller: element missing");
+            return;
+        }
+        if (_boundMinus != Identity(_minus))
         {
             _boundMinus = 0;
-            if (_minus == null || !NativeModsSettingsBridge.TryBindNativeClick(
+            if (!NativeModsSettingsBridge.TryBindNativeClick(
                     _minus, () => AdjustSize(-0.1f), out string problem))
             {
-                ReportBindingProblem("Smaller: " + (_minus == null
-                    ? "element missing" : problem));
+                ReportBindingProblem("Smaller: " + problem);
                 return;
             }
             _boundMinus = Identity(_minus);
         }
 
-        if (_plus == null || _boundPlus != Identity(_plus))
+        if (_plus == null)
+        {
+            ReportBindingProblem("Larger: element missing");
+            return;
+        }
+        if (_boundPlus != Identity(_plus))
         {
             _boundPlus = 0;
-            if (_plus == null || !NativeModsSettingsBridge.TryBindNativeClick(
+            if (!NativeModsSettingsBridge.TryBindNativeClick(
                     _plus, () => AdjustSize(0.1f), out string problem))
             {
-                ReportBindingProblem("Larger: " + (_plus == null
-                    ? "element missing" : problem));
+                ReportBindingProblem("Larger: " + problem);
                 return;
             }
             _boundPlus = Identity(_plus);
