@@ -125,12 +125,14 @@ internal static class ModConfigCatalog
             foreach (Type type in types)
             {
                 if (type.IsAbstract) continue;
+                bool isPlugin = false;
                 try
                 {
-                    if (type.GetCustomAttributes(typeof(BepInPlugin), false)
-                        .Length > 0) yield return type;
+                    isPlugin = type.GetCustomAttributes(typeof(BepInPlugin), false)
+                        .Length > 0;
                 }
                 catch { }
+                if (isPlugin) yield return type;
             }
         }
     }
