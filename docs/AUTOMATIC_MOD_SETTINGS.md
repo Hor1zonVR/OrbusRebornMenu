@@ -133,3 +133,23 @@ The automatic UI is a convenience layer, not a permission boundary:
 it invokes the mod's **existing** live configuration. Mod authors should
 never expose sensitive config values as numeric/bool/enums if those
 values should not be shown in VR.
+
+## Optional WeaponAdjustments preset page (v0.2.11)
+
+RebornMenu v0.2.11 retains automatic BepInEx Config.Bind discovery for
+every installed mod. One first-party, optional integration allows
+OrbusWeaponAdjustments v0.2.2+ to render its **own** full-width right-hand
+page when the user selects it in the Mods sidebar.
+
+- The integration uses reflection to call the public static provider
+  WeaponPresetUi.RenderInRebornMenu(document, content) and does not
+  introduce a compile-time dependency on WeaponAdjustments.
+- If the provider or plugin is absent, the usual BepInEx configuration
+  controls remain available as a fallback.
+- WeaponAdjustments owns all preset I/O, class/character guards, native
+  Orbus keyboard prompts, delete confirmation, Trash and backups.
+- RebornMenu does not read native grip keys, player IDs or preset files.
+- General Settings remains untouched by this extension.
+
+The per-mod page is scoped to the existing 350px-wide
+rm-mod-content region. Other selected mod pages render unchanged.

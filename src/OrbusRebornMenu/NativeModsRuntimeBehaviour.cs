@@ -687,12 +687,49 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         RenderSelected();
     }
 
+    // Optional first-party page provider. No hard dependency from RebornMenu
+    // to WeaponAdjustments: any other mods continue to use Config.Bind UI.
+    // The provider owns its own state and keeps BepInEx preset data private.
+    private bool TryRenderWeaponPresetPage()
+    {
+        if (_document == null || _content == null) return false;
+        try
+        {
+            Type? provider = FindType("OrbusWeaponAdjustments.WeaponPresetUi");
+            MethodInfo? entry = provider?.GetMethod("RenderInRebornMenu",
+                BindingFlags.Public | BindingFlags.Static, null,
+                new[] { typeof(object), typeof(object) }, null);
+            if (entry == null || entry.ReturnType != typeof(bool)) return false;
+            return entry.Invoke(null, new[] { _document, _content }) is true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogWarning("[RebornMenu] Weapon preset page provider unavailable: " +
+                (ex.InnerException ?? ex).GetType().Name);
+            return false;
+        }
+    }
+
     private void RenderSelected()
     {
         if (_document == null || _content == null || _sidebar == null) return;
         ModConfigCatalog.ModPage? mod = _mods.FirstOrDefault(m =>
             m.Id == _selectedMod);
         if (mod == null) return;
+
+        // A full native preset manager belongs on its own mod page, not in
+        // vanilla General Settings. Keep default config UI for all other mods.
+        if (mod.Id == "com.horizon.orbus.weaponadjustments" &&
+            TryRenderWeaponPresetPage())
+        {
+            for (int i = 0; i < _mods.Count; i++)
+            {
+                object? button = ById(_document, "rm-mod-" + i);
+                Set(Get(button, "style"), "color",
+                    _mods[i].Id == _selectedMod ? "#eda60c" : "#d5bd95");
+            }
+            return;
+        }
 
         var html = new System.Text.StringBuilder();
         html.Append("<h4 style='margin:3px 0 9px 0'>")
