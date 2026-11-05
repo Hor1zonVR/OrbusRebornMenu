@@ -35,8 +35,6 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private readonly List<ModConfigCatalog.ModPage> _mods = new();
     private string _selectedMod = "";
     private long _sidebarBuilt;
-    private long _renderedContent;
-    private bool _dragSupported;
 
     private static Type? FindType(string name)
     {
@@ -376,7 +374,6 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         {
             _boundTab = 0;
             _sidebarBuilt = 0;
-            _renderedContent = 0;
             _layoutApplied = false;
             if (!NativeModsSettingsBridge.TryBindNativeClick(tab, ShowMods,
                     out string problem))
@@ -629,7 +626,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                     html.Append("<div id='rm-zone-").Append(index).Append("-")
                         .Append(j).Append("' style='position:absolute;top:-6px;left:")
                         .Append(j * 8).Append("px;width:8px;height:24px;")
-                        .Append("background-color:transparent'></div>");
+                        .Append("background-color:rgba(255,255,255,0.01)'></div>");
                 }
                 html.Append("</div></div>");
                 html.Append("<p id='rm-val-").Append(index)
@@ -732,7 +729,6 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             Set(Get(button, "style"), "color",
                 _mods[i].Id == _selectedMod ? "#eda60c" : "#d5bd95");
         }
-        _renderedContent = Identity(_content);
     }
 
     private static double ReadNumber(ModConfigCatalog.Setting setting)
