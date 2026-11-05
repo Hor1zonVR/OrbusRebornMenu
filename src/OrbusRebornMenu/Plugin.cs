@@ -5,7 +5,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusRebornMenu;
 
-[BepInPlugin("com.horizon.orbus.rebornmenu", "RebornMenu", "0.2.8")]
+[BepInPlugin("com.horizon.orbus.rebornmenu", "RebornMenu", "0.2.9")]
 public sealed class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
