@@ -541,6 +541,15 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     }
 
 
+    private static string SidebarName(string fullName)
+    {
+        string name = fullName;
+        if (name.StartsWith("Orbus", StringComparison.OrdinalIgnoreCase) &&
+            name.Length > 5)
+            name = name.Substring(5);
+        return FriendlyName(name);
+    }
+
     private static string FriendlyName(string name)
     {
         if (string.IsNullOrEmpty(name)) return "";
@@ -601,7 +610,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             html.Append("<li id='rm-mod-").Append(i).Append("' ");
             html.Append("class='compact option' style='width:134px;min-height:24px;");
             html.Append("margin-bottom:4px;font-size:13px'>");
-            html.Append(Escape(_mods[i].Name)).Append("</li>");
+            html.Append(Escape(SidebarName(_mods[i].Name))).Append("</li>");
         }
         html.Append("</ul>");
 
