@@ -722,7 +722,7 @@ internal static class NativeModsSettingsBridge
         return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(node);
     }
 
-    private static bool TryBindNativeClick(object element, Action callback,
+    internal static bool TryBindNativeClick(object element, Action callback,
         out string failure)
     {
         failure = "No compatible native click event";
