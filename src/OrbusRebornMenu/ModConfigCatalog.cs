@@ -29,6 +29,8 @@ internal static class ModConfigCatalog
         internal ConfigEntryBase Entry = null!;
         internal string Section = "";
         internal string Name = "";
+        internal string DisplayName = "";
+        internal string Hint = "";
         internal string Description = "";
         internal Type ValueType = typeof(float);
         internal double Min;
@@ -224,10 +226,9 @@ internal static class ModConfigCatalog
             (section == "NativeMods" && key == "EnableLiveModsTab"))
             return true;
 
-        // Keep Ability Labels focused on actual label settings rather than
-        // tuning the rendering engine's per-orb offsets in the VR menu.
-        if (section == "Labels" && (key == "AboveOrbMetres" ||
-            key == "TowardHeadMetres" || key == "ReadableTextSize"))
+        // Keep the raw font-unit tuning hidden, but expose the live
+        // vertical/depth positioning controls requested by players.
+        if (section == "Labels" && key == "ReadableTextSize")
             return true;
 
         try
@@ -241,6 +242,23 @@ internal static class ModConfigCatalog
         }
         catch { }
         return false;
+    }
+
+    // Any BepInEx mod can customise a setting label and hint without
+    // linking against RebornMenu. Unknown tags are ignored.
+    private static string UiTag(ConfigEntryBase entry, string prefix)
+    {
+        try
+        {
+            if (entry.Description.Tags is IEnumerable tags)
+                foreach (object? tag in tags)
+                    if (tag is string text &&
+                        text.StartsWith(prefix, StringComparison.Ordinal) &&
+                        text.Length > prefix.Length)
+                        return text.Substring(prefix.Length).Trim();
+        }
+        catch { }
+        return "";
     }
 
     private static Setting? Create(ConfigEntryBase entry)
@@ -281,6 +299,8 @@ internal static class ModConfigCatalog
                 Entry = entry,
                 Section = entry.Definition.Section,
                 Name = entry.Definition.Key,
+                DisplayName = UiTag(entry, "RebornMenu.Label="),
+                Hint = UiTag(entry, "RebornMenu.Hint="),
                 Description = entry.Description.Description ?? "",
                 ValueType = type,
                 Kind = kind,
@@ -342,14 +362,17 @@ internal static class ModConfigCatalog
             // explain that no ordinary settings are available yet.
             group.Settings.Sort((a,b) =>
             {
-                // Show the flagship Ability Labels Scale control first.
-                // Everything else remains grouped by native BepInEx section.
+                // Show the three Ability Labels adjustments together:
+                // size, vertical, and depth. All other settings keep their
+                // normal BepInEx section/setting ordering.
                 if (group.Name.IndexOf("AbilityLabels", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     group.Name.IndexOf("Ability Labels", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    bool aScale = a.Section == "Labels" && a.Name == "Scale";
-                    bool bScale = b.Section == "Labels" && b.Name == "Scale";
-                    if (aScale != bScale) return aScale ? -1 : 1;
+                    string[] order = { "Scale", "AboveOrbMetres", "TowardHeadMetres" };
+                    int ai = a.Section == "Labels" ? Array.IndexOf(order, a.Name) : -1;
+                    int bi = b.Section == "Labels" ? Array.IndexOf(order, b.Name) : -1;
+                    if (ai >= 0 && bi >= 0) return ai.CompareTo(bi);
+                    if (ai >= 0 || bi >= 0) return ai >= 0 ? -1 : 1;
                 }
 
                 int section = string.Compare(a.Section, b.Section,
