@@ -132,7 +132,7 @@ try {
     }
     $sha = (& git rev-parse HEAD).Trim()
     Assert-Exit 'Resolving release commit'
-    $notes = "Experimental native Mods config browser: left-side installed-mod list, selected mod settings on the right. Automatically discovers live BepInEx ConfigEntry controls (bounded numeric slider, bool toggle, enum choices). Ability Labels uses native Orbus-style Scale slider. Original vanilla and Spades tabs preserved. Requires live VR validation; free-form string configs are hidden for privacy."
+    $notes = "Mods UX update: separate left mod-list and right config scrolling, outer Orbus Settings scrollbar disabled only on Mods page and restored on native tabs; cleaned readable setting names; deprecated/diagnostic settings hidden from player-facing UI. Preserves per-mod live BepInEx configs. Ability Labels and QuestHelper also have separate source cleanup updates; optional backup-first offline config cleaner included in tools/. Requires in-game VR verification."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$sha,
               '--title',"RebornMenu $tag",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
