@@ -35,6 +35,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private object? _outerSettingsScroll;
     private bool _outerScrollDisabled;
     private bool _reportedOuterScroll;
+    private long _outerScrollPointer;
     private readonly List<ModConfigCatalog.ModPage> _mods = new();
     private string _selectedMod = "";
     private long _sidebarBuilt;
@@ -370,6 +371,14 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         _sidebar = ById(doc, "rm-mod-list");
         _content = ById(doc, "rm-mod-content");
         _outerSettingsScroll = FirstByClass(doc, "largesettingsmenu-inner");
+        long activeScrollPointer = Identity(_outerSettingsScroll);
+        if (_outerScrollPointer != activeScrollPointer)
+        {
+            // The whole PlayerMenu document may be rebuilt after rejoining
+            // or switching shards; do not reuse the previous DOM's state.
+            _outerScrollPointer = activeScrollPointer;
+            _outerScrollDisabled = false;
+        }
 
         if (_sidebar == null || _content == null)
         {
