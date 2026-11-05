@@ -22,6 +22,9 @@ namespace OrbusRebornMenu;
 internal static class NativeModsSettingsBridge
 {
     private const string HarmonyId = "com.horizon.orbus.rebornmenu.nativesettings";
+    // The two Spades upper-row tabs must be located before mutation is allowed.
+    // No code in this diagnostic build can flip this safety gate.
+    private const bool UpperRowInsertionVerified = false;
     private const BindingFlags Flags =
         BindingFlags.Public | BindingFlags.NonPublic |
         BindingFlags.Instance | BindingFlags.Static;
@@ -175,7 +178,7 @@ internal static class NativeModsSettingsBridge
                 RememberDocument(__instance);
                 ObserveSettingsWrite(__instance, __0, id);
             }
-            if (!Plugin.EnableNativePrototype.Value) return;
+            if (!Plugin.EnableNativePrototype.Value || !UpperRowInsertionVerified) return;
 
             if (NativeSettingsMarkup.TryExtend(id, __0,
                 out string extended, out string reason))
@@ -599,7 +602,7 @@ internal static class NativeModsSettingsBridge
     private static void AfterSetHtml(object __instance, string __0)
     {
         if (_disabled || !Plugin.EnableNativePrototype.Value ||
-            __instance == null || string.IsNullOrEmpty(__0) ||
+            !UpperRowInsertionVerified || __instance == null || string.IsNullOrEmpty(__0) ||
             !__0.Contains(NativeSettingsMarkup.Marker, StringComparison.Ordinal))
             return;
 
