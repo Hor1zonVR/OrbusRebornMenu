@@ -2,7 +2,7 @@
 
 **One universal in-game VR mod configuration menu for OrbusVR Community Edition and Orbus Renewed.**
 
-**Status: design and developer contract.** This repository now contains the architecture and integration foundation, but **there is no working VR plugin or installer release yet**. Don't install it as a BepInEx plugin until a tested compiled release is available.
+**Status: experimental native Settings integration.** The source now includes a guarded Mods tab that appears after Graphics when the original PowerUI Settings header is verified, plus Smaller/Larger controls for Ability Labels' live BepInEx scale configuration. **The new integration still needs compilation and in-headset verification.** Keep a backup test instance and disable the feature if Settings behaves unexpectedly.
 
 ## The idea
 
@@ -38,6 +38,21 @@ We're abandoning the unsuccessful v0.1 wrist-rune/floating-text experiment. The 
 **Not yet proven in VR or released as a compiled v0.2.0 DLL.** Until we identify the precise native Settings tab container, it isn't guaranteed to appear as a top-level tab. The first page is an interaction test, not yet a full settings editor.
 
 See [v0.2 native Mods tab testing and rollback](docs/NATIVE_MODS_V020_TEST.md).
+
+## New test: Mods after Graphics (Community and Spades)
+
+The two FourOfSpades extension tabs sit above the original Orbus Settings tabs. RebornMenu's first native UI test instead adds Mods as a **fifth original Settings tab**, after Graphics. On both clients this is the same insertion point and does not depend on Spades' custom upper row.
+
+- Uses existing Orbus `settings-tab-control`, `settings-tab`, `compact option`, `menu-list`, headings and CSS assets.
+- Appends to the verified native PowerUI DOM, without replacing existing tab elements or their click handlers.
+- Narrowing the original four tabs to 104px, plus 8px spacing, lets all five fit the existing 570px tab header. If the runtime APIs cannot set those widths, Mods stays hidden to prevent overlap.
+- Initially exposes **Ability Labels > Smaller / Larger**, changing the loaded `OrbusAbilityLabels.Plugin.LabelScale` (`[Labels] Scale`, 0.50x–2.00x) via its existing BepInEx `ConfigEntry<float>`. No Ability Labels source changes required.
+- No full automatic mod settings browser or slider yet. Those come after the basic native tab/VR pointer test succeeds.
+- Safely leaves original UI alone when the recognised Settings document or tab identifiers are absent; emits one diagnostic warning in `BepInEx/LogOutput.log`.
+
+From any PowerShell folder, run `& "$env:USERPROFILE\OneDrive\Documents\OrbusRebornMenu\release.ps1"`, update RebornMenu in RebornManager, and open Settings in VR. Look for Mods immediately to the right of Graphics and test Larger/Smaller with Bard equipped. Send the `[RebornMenu]` lines from the log if missing or unresponsive.
+
+To roll back without uninstalling, close the game and set `[NativeMods] EnableLiveModsTab = false` in `BepInEx/config/com.horizon.orbus.rebornmenu.cfg` then relaunch.
 
 ## Standalone mod first, automatic companion later
 
