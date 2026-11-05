@@ -100,30 +100,68 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         catch { return null; }
     }
 
+    private static string _lastAppendWarning = "";
+
     private static bool AppendHtml(object? target, string html)
     {
         if (target == null) return false;
         try
         {
-            // Available on BOTH PowerUI.Element (Community) and
-            // PowerUI.HtmlElement (Spades); appends without rebuilding
-            // existing tab elements or their original native handlers.
-            MethodInfo? method = target.GetType().GetMethod("appendChild", Flags,
-                null, new[] { typeof(string) }, null);
-            if (method == null)
+            Type type = target.GetType();
+
+            // Confirmed in the Renewed IL2CPP dump: Dom.Element exports
+            // insertAdjacentHTML(string positionName, string html),
+            // appendInnerHTML(string), and append(string).
+            // appendChild(string) belongs to PowerUI.HtmlElement only;
+            // our live Settings lookup returns Dom.Element, so that
+            // earlier call could never work.
+            MethodInfo? adjacent = type.GetMethod("insertAdjacentHTML", Flags,
+                null, new[] { typeof(string), typeof(string) }, null);
+            if (adjacent != null)
             {
-                Plugin.Logger.LogWarning("[RebornMenu] Native DOM element " +
-                    target.GetType().FullName +
-                    " does not expose appendChild(string); no markup inserted.");
-                return false;
+                adjacent.Invoke(target, new object[] { "beforeend", html });
+                return true;
             }
-            method.Invoke(target, new object[] { html });
-            return true;
+
+            MethodInfo? appendInner = type.GetMethod("appendInnerHTML", Flags,
+                null, new[] { typeof(string) }, null);
+            if (appendInner != null)
+            {
+                appendInner.Invoke(target, new object[] { html });
+                return true;
+            }
+
+            // Backward-compatible PowerUI.HtmlElement overload, only if
+            // the returned type actually exposes it. Never rewrite
+            // innerHTML, because that would destroy the original handlers.
+            MethodInfo? legacy = type.GetMethod("appendChild", Flags,
+                null, new[] { typeof(string) }, null);
+            if (legacy != null)
+            {
+                legacy.Invoke(target, new object[] { html });
+                return true;
+            }
+
+            string missing = type.FullName + ": no recognised HTML append API.";
+            if (_lastAppendWarning != missing)
+            {
+                _lastAppendWarning = missing;
+                Plugin.Logger.LogWarning("[RebornMenu] " + missing +
+                    " Original menu left unchanged.");
+            }
+            return false;
         }
         catch (Exception ex)
         {
-            Plugin.Logger.LogWarning("[RebornMenu] appendChild failed safely: " +
-                (ex.InnerException ?? ex).GetType().Name);
+            Exception actual = ex.InnerException ?? ex;
+            string warning = target.GetType().FullName + ": " +
+                actual.GetType().Name + " " + actual.Message;
+            if (_lastAppendWarning != warning)
+            {
+                _lastAppendWarning = warning;
+                Plugin.Logger.LogWarning("[RebornMenu] Native HTML append failed: " +
+                    warning + ". No fallback DOM rebuild attempted.");
+            }
             return false;
         }
     }
