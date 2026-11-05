@@ -16,11 +16,9 @@ public sealed class Plugin : BasePlugin
     {
         Logger = Log;
         EnableNativePrototype = Config.Bind(
-            "ExperimentalNativeSettings", "EnableModsTab", true,
-            "Attempt to add a small Mods entry INSIDE a recognised Orbus Settings " +
-            "page using its existing PowerUI and VR pointer. Reverts to the game's " +
-            "unmodified UI on next restart if disabled. This experimental version " +
-            "does not edit other mods' settings yet.");
+            "ExperimentalNativeSettings", "EnableModsTab", false,
+            "Reserved for a future Mods tab after Spades upper-row tabs. " +
+            "Native tab insertion is disabled until the exact live anchor is verified.");
 
         EnableNativeDiagnostics = Config.Bind(
             "ExperimentalNativeSettings", "LogSettingsMetadata", true,
@@ -38,7 +36,7 @@ public sealed class Plugin : BasePlugin
                 "node metadata on demand. Open Missions once, then Settings, " +
                 "and press the shortcut while the game window is focused.");
         }
-        Log.LogInfo("[RebornMenu] native Settings v0.2.2 read-only document probe loaded.");
+        Log.LogInfo("[RebornMenu] native Settings upper-row probe loaded; UI insertion still disabled.");
         Log.LogInfo("[RebornMenu] No wrist rune, UI canvas, VR controller polling, " +
             "or independent laser is used. Other mods remain independent.");
     }
