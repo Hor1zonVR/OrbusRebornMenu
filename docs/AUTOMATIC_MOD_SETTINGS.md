@@ -74,6 +74,28 @@ into logical `Config.Bind` sections and provide meaningful
 **Please share the exact `[RebornMenu]` log lines or a screenshot if a
 control is absent or unresponsive.** No large scene diagnostic is needed.
 
+## Friendly labels and short slider hints (no RebornMenu dependency)
+
+Mods can optionally attach human-readable labels and help text using
+ordinary BepInEx `ConfigDescription.Tags`. RebornMenu will continue to
+discover entries that don't use these tags; they're purely optional.
+
+```csharp
+var height = Config.Bind("Labels", "AboveOrbMetres", 0.072f,
+    new ConfigDescription(
+        "How far above the orb the label should appear.",
+        new AcceptableValueRange<float>(-0.03f, 0.18f),
+        "RebornMenu.Label=Vertical Position (m)",
+        "RebornMenu.Hint=Higher (+) or lower (-) relative to the orb"));
+```
+
+Ability Labels now exposes three live sliders: Label Size (0.50–2.00x),
+Vertical Position (-0.03–0.18m, default 0.072m), and
+Forward / Backward (-0.05–0.10m, default 0.016m). Positive depth brings
+the labels toward the headset; negative depth moves them away. The
+existing values are preserved when upgrading, and the render loop reads
+them on every frame.
+
 ## Player-facing settings versus developer diagnostics
 
 RebornMenu hides common internal-only sections in the VR menu:
