@@ -192,25 +192,60 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
 
     private void EnsureUi()
     {
+        // Prefer the loaded game's PlayerMenu document; the modern Spades
+        // runtime may also expose a Dom.Document via PowerUI.UI.document or
+        // the existing read-only HTML observer. Every candidate MUST have
+        // the original Settings header and the four named vanilla controls.
         Type? type = FindType("ng") ?? FindType("PlayerMenu");
-        object? doc = Get(type, "sew") ?? Get(type, "document");
-        if (doc == null) return;
+        var documents = new List<object>();
+        object? playerDoc = Get(type, "sew") ?? Get(type, "document");
+        if (playerDoc != null) documents.Add(playerDoc);
 
-        object? header = ById(doc, "settings-tab-controls");
-        object? content = FirstByClass(doc, "largesettingsmenu-inner");
-        if (header == null || content == null ||
-            !LooksLikeOriginalSettings(header, doc))
+        object? global = Get(FindType("PowerUI.UI"), "document");
+        if (global != null &&
+            !documents.Any(d => Identity(d) == Identity(global)))
+            documents.Add(global);
+
+        foreach (object observed in NativeModsSettingsBridge.KnownDocuments())
+        {
+            if (!documents.Any(d => Identity(d) == Identity(observed)))
+                documents.Add(observed);
+        }
+
+        object? doc = null;
+        object? header = null;
+        object? content = null;
+        foreach (object candidate in documents)
+        {
+            object? candidateHeader = ById(candidate, "settings-tab-controls");
+            object? candidateContent = FirstByClass(candidate, "largesettingsmenu-inner");
+            if (candidateHeader == null || candidateContent == null ||
+                !LooksLikeOriginalSettings(candidateHeader, candidate))
+                continue;
+            doc = candidate;
+            header = candidateHeader;
+            content = candidateContent;
+            break;
+        }
+
+        if (doc == null || header == null || content == null)
         {
             if (!_loggedNoAnchor)
             {
                 _loggedNoAnchor = true;
+                object? candidateHeader = playerDoc == null ? null :
+                    ById(playerDoc, "settings-tab-controls");
+                string sample = Get(candidateHeader, "innerHTML") as string ?? "";
                 Plugin.Logger.LogWarning("[RebornMenu] Native Mods tab waiting: " +
-                    "original Settings tabs or content region aren't available. " +
-                    "No game DOM was modified.");
+                    "checked " + documents.Count +
+                    " native documents; direct PlayerMenu header=" +
+                    (candidateHeader != null) + ", headerHtmlLength=" + sample.Length +
+                    ", originalGeneralClass=" +
+                    (playerDoc != null && FirstByClass(playerDoc, "data-switchtab-general") != null) +
+                    ". No game DOM was modified.");
             }
             return;
         }
-
         _loggedNoAnchor = false;
         object? tab = ById(doc, "rebornmenu-settings-tab");
         object? page = ById(doc, "rebornmenu-settings-page");
