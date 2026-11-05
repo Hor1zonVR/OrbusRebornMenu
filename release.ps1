@@ -132,7 +132,7 @@ try {
     }
     $sha = (& git rev-parse HEAD).Trim()
     Assert-Exit 'Resolving release commit'
-    $notes = "Mods UX update: separate left mod-list and right config scrolling, outer Orbus Settings scrollbar disabled only on Mods page and restored on native tabs; cleaned readable setting names; deprecated/diagnostic settings hidden from player-facing UI. Preserves per-mod live BepInEx configs. Ability Labels and QuestHelper also have separate source cleanup updates; optional backup-first offline config cleaner included in tools/. Requires in-game VR verification."
+    $notes = "Native Mods configuration browser with isolated mod/settings scrolling. Ability Labels now exposes live Scale, Vertical Position and Forward/Backward adjustments, using friendly display names and direction hints from generic BepInEx ConfigDescription tags. Existing original Settings tabs and Spades addons preserved; debug-only fields hidden. Requires VR validation of the new position sliders."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$sha,
               '--title',"RebornMenu $tag",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
