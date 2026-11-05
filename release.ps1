@@ -132,7 +132,7 @@ try {
     }
     $sha = (& git rev-parse HEAD).Trim()
     Assert-Exit 'Resolving release commit'
-    $notes = "Experimental native Settings Mods tab after Graphics (Community and Spades). Reuses original PowerUI tab and settings-page CSS, plus Ability Labels Smaller/Larger controls (live saved [Labels] Scale). Safe native document detection; no original game UI nodes replaced. Requires headset verification; no generic config editor yet. Standalone optional RebornManager client mod."
+    $notes = "Experimental native Mods config browser: left-side installed-mod list, selected mod settings on the right. Automatically discovers live BepInEx ConfigEntry controls (bounded numeric slider, bool toggle, enum choices). Ability Labels uses native Orbus-style Scale slider. Original vanilla and Spades tabs preserved. Requires live VR validation; free-form string configs are hidden for privacy."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$sha,
               '--title',"RebornMenu $tag",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
