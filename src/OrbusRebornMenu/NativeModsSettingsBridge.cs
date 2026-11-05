@@ -496,6 +496,14 @@ internal static class NativeModsSettingsBridge
         return "";
     }
 
+    // Runtime Mods integration may inspect only documents already observed
+    // by the existing bounded PowerUI hook. It still requires the exact
+    // original Settings IDs/classes before touching any of them.
+    internal static List<object> KnownDocuments()
+    {
+        return new List<object>(ObservedDocuments);
+    }
+
     private static bool ContainsMenuHint(string value)
     {
         const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
