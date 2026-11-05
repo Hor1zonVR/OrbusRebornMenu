@@ -443,7 +443,11 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         if (_document == null || _tab == null || _page == null) return;
         string modsClasses = Get(_tab, "className")?.ToString() ?? "";
         if (!modsClasses.Contains("settings-tab-control-active",
-            StringComparison.Ordinal)) return;
+            StringComparison.Ordinal))
+        {
+            SetOuterSettingsScroll(false);
+            return;
+        }
 
         foreach (string name in new[] { "general", "locomotion", "audio", "graphics" })
         {
@@ -527,6 +531,23 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         }
     }
 
+
+    private static string FriendlyName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "";
+        var text = new System.Text.StringBuilder(name.Length + 8);
+        for (int i = 0; i < name.Length; i++)
+        {
+            char current = name[i];
+            if (i > 0 && char.IsUpper(current) &&
+                (char.IsLower(name[i - 1]) ||
+                (i + 1 < name.Length && char.IsLower(name[i + 1]) &&
+                 char.IsUpper(name[i - 1]))))
+                text.Append(' ');
+            text.Append(current);
+        }
+        return text.ToString();
+    }
 
     private static string Escape(string? text)
     {
@@ -639,7 +660,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             }
             html.Append("<div style='margin-bottom:15px'>");
             html.Append("<p style='font-size:14px;margin-bottom:6px'>")
-                .Append(Escape(setting.Name)).Append("</p>");
+                .Append(Escape(FriendlyName(setting.Name))).Append("</p>");
             if (setting.Kind == "range")
             {
                 double value = ReadNumber(setting);
@@ -690,6 +711,10 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             html.Append("</div>");
             index++;
         }
+
+        if (mod.Settings.Count == 0)
+            html.Append("<p style='margin-top:18px'>No player-facing settings " +
+                "are exposed by this mod yet.</p>");
 
         if (!Set(_content, "innerHTML", html.ToString()))
         {
