@@ -34,6 +34,10 @@ internal static class AbilityLabelsSettings
         return null;
     }
 
+    // Fallback for generic config discovery when a BepInEx IL2CPP
+    // chainloader instance does not publicly expose its ConfigFile.
+    internal static ConfigEntryBase? LiveScaleEntry() => ResolveScale();
+
     internal static bool TryReadScale(out float scale)
     {
         scale = 1f;
