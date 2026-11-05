@@ -560,6 +560,9 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                 Set(_tab, "className",
                     ownClasses + " settings-tab-control-active");
             EnsureModList();
+            // Also restore the top entries when reopening a previously built
+            // Mods tab; EnsureModList may return early for the same DOM.
+            ResetSidebarScroll(_sidebar);
         }
         catch (Exception ex)
         {
