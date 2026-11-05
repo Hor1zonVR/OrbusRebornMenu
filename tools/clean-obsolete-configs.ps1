@@ -9,11 +9,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+if ($Apply -and (Get-Process -Name 'OrbusVR' -ErrorAction SilentlyContinue)) {
+    throw "Close OrbusVR before applying config cleanup, so the game cannot write old settings back."
+}
+
 # Do not touch active production settings. Old keys that still have a
 # running Config.Bind in another mod must NOT be pruned here.
 $obsolete = @{
     'com.horizon.orbusabilitylabels.cfg' = @(
         'Bard Inspector|ShowCompactPanel'
+        'Bard Inspector|ShowTemporaryPanel'
         'Bard Inspector|PanelScale'
         'Bard Inspector|SideOffsetMetres'
         'Bard Inspector|HeightMetres'
