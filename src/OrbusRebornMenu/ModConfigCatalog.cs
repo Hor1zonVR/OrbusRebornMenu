@@ -227,7 +227,7 @@ internal static class ModConfigCatalog
         // Keep Ability Labels focused on actual label settings rather than
         // tuning the rendering engine's per-orb offsets in the VR menu.
         if (section == "Labels" && (key == "AboveOrbMetres" ||
-            key == "TowardHeadMetres"))
+            key == "TowardHeadMetres" || key == "ReadableTextSize"))
             return true;
 
         try
