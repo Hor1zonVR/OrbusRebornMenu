@@ -30,9 +30,13 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private object? _document;
     private object? _tab;
     private object? _page;
-    private object? _value;
-    private object? _minus;
-    private object? _plus;
+    private object? _sidebar;
+    private object? _content;
+    private readonly List<ModConfigCatalog.ModPage> _mods = new();
+    private string _selectedMod = "";
+    private long _sidebarBuilt;
+    private long _renderedContent;
+    private bool _dragSupported;
 
     private static Type? FindType(string name)
     {
@@ -342,15 +346,11 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             const string newPage =
                 "<div id=\"rebornmenu-settings-page\" " +
                     "class=\"settings-tab data-settingstab-mods\" " +
-                    "style=\"display:none;\">" +
-                "<h4>Ability Labels</h4>" +
-                "<p>Change the size of the abbreviations above Bard and Musketeer abilities.</p>" +
-                "<ul class=\"menu-list\" style=\"margin-top:10px;\">" +
-                  "<li id=\"rebornmenu-size-minus\" class=\"compact option\">Smaller</li>" +
-                  "<li id=\"rebornmenu-size-plus\" class=\"compact option\">Larger</li>" +
-                "</ul>" +
-                "<p id=\"rebornmenu-size-value\">Label size: 1.00x</p>" +
-                "<p>Adjusts the installed Ability Labels mod. Changes save automatically.</p>" +
+                    "style=\"display:none;position:relative;min-height:450px;\">" +
+                  "<div id=\"rm-mod-list\" style=\"position:absolute;left:3px;" +
+                    "top:8px;width:148px;height:420px;overflow-y:auto;\"></div>" +
+                  "<div id=\"rm-mod-content\" style=\"position:absolute;left:174px;" +
+                    "top:4px;width:350px;height:420px;overflow-y:auto;\"></div>" +
                 "</div>";
             if (!AppendHtml(content, newPage)) return;
             tab = ById(doc, "rebornmenu-settings-tab");
