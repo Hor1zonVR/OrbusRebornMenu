@@ -263,7 +263,18 @@ internal static class NativeModsSettingsBridge
                 ", document=" + (playerMenuDocument?.GetType().FullName ?? "<none>") + ".");
 
             if (playerMenuDocument != null)
+            {
                 LogKnownSettingsTabOrder(playerMenuDocument);
+                LogUpperRowCandidates(playerMenuDocument);
+            }
+
+            if (AbilityLabelsSettings.TryReadScale(out float labelScale))
+                _log?.LogInfo("[RebornMenu/Probe] Ability Labels config bridge READY; " +
+                    "live size multiplier=" + labelScale.ToString("0.00", 
+                    System.Globalization.CultureInfo.InvariantCulture) + "x.");
+            else
+                _log?.LogInfo("[RebornMenu/Probe] Ability Labels config bridge: " +
+                    "plugin not loaded or LabelScale entry unavailable.");
 
             _log?.LogInfo("[RebornMenu/Probe] MANUAL native document snapshot: " +
                 "observed=" + ObservedDocuments.Count +
@@ -391,6 +402,95 @@ internal static class NativeModsSettingsBridge
             _log?.LogWarning("[RebornMenu/Probe] Settings tab inspection " +
                 "skipped: " + ex.GetType().Name);
         }
+    }
+
+    // Read only the immediate Settings document neighbourhood to locate
+    // FourOfSpades' EXTRA row. The original lower settings-tab-controls
+    // must not be used as the Mods tab insertion point.
+    private static void LogUpperRowCandidates(object document)
+    {
+        try
+        {
+            object? header = ById(document, "settings-tab-controls");
+            if (header == null) return;
+
+            object? settingsSection = Member(header, "parentElement") ??
+                                      Member(header, "parentNode");
+            object? upperScope = Member(settingsSection, "parentElement") ??
+                                 Member(settingsSection, "parentNode");
+            if (upperScope == null) upperScope = settingsSection;
+            if (upperScope == null) return;
+
+            var queue = new Queue<(object Node, int Depth)>();
+            var seen = new HashSet<long>();
+            queue.Enqueue((upperScope, 0));
+            int visited = 0;
+            int candidates = 0;
+            while (queue.Count > 0 && visited++ < 200 && candidates < 26)
+            {
+                (object node, int depth) = queue.Dequeue();
+                if (!seen.Add(PointerId(node))) continue;
+
+                string tag = Member(node, "tagName")?.ToString() ?? "";
+                string id = Member(node, "id")?.ToString() ?? "";
+                string classes = Member(node, "className")?.ToString() ?? "";
+                string tokens = (id + " " + classes).ToLowerInvariant();
+                string feature = RecognizedAddonFeature(node);
+
+                bool relevant = tokens.Contains("analy") ||
+                                tokens.Contains("graph") ||
+                                tokens.Contains("dps") ||
+                                tokens.Contains("setting") ||
+                                tokens.Contains("tab") ||
+                                feature.Length > 0;
+                if (tag.Length > 0 && relevant)
+                {
+                    _log?.LogInfo("[RebornMenu/Probe] Upper-row candidate " +
+                        (++candidates) + " depth=" + depth + " " +
+                        NodeMetadata(node) +
+                        (feature.Length == 0 ? "" : " feature=" + feature) + ".");
+                }
+                if (depth >= 4) continue;
+
+                object? child = Member(node, "firstChild");
+                int siblings = 0;
+                while (child != null && siblings++ < 55)
+                {
+                    queue.Enqueue((child, depth + 1));
+                    object? next = Member(child, "nextSibling");
+                    if (next != null && PointerId(next) == PointerId(child))
+                        break;
+                    child = next;
+                }
+            }
+            _log?.LogInfo("[RebornMenu/Probe] Upper-row neighbourhood " +
+                "scanned=" + visited + ", namedCandidates=" + candidates +
+                "; no UI modified.");
+        }
+        catch (Exception ex)
+        {
+            _log?.LogWarning("[RebornMenu/Probe] Upper-row investigation " +
+                "skipped: " + ex.GetType().Name);
+        }
+    }
+
+    // Do not log arbitrary text from the player's UI. Only acknowledge
+    // literal names of the specific known Spades features.
+    private static string RecognizedAddonFeature(object node)
+    {
+        try
+        {
+            string value = Member(node, "textContent")?.ToString() ?? "";
+            if (value.Length < 2 || value.Length > 45) return "";
+            if (value.IndexOf("Class Analyzer",
+                StringComparison.OrdinalIgnoreCase) >= 0) return "class-analyzer";
+            if (value.IndexOf("DPS Graph",
+                StringComparison.OrdinalIgnoreCase) >= 0) return "dps-graph";
+            if (value.IndexOf("DPS Analyzer",
+                StringComparison.OrdinalIgnoreCase) >= 0) return "dps-analyzer";
+        }
+        catch { }
+        return "";
     }
 
     private static bool ContainsMenuHint(string value)
