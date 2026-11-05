@@ -229,10 +229,18 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             bool originalTabs = candidateHeader != null &&
                 LooksLikeOriginalSettings(candidateHeader, candidate);
             if (candidates.Count < 4)
+            {
+                string headerHtml = Get(candidateHeader, "innerHTML") as string ?? "";
+                bool general = FirstByClass(candidate, "data-switchtab-general") != null;
+                bool graphics = FirstByClass(candidate, "data-switchtab-graphics") != null;
                 candidates.Add(candidate.GetType().Name +
                     "[header=" + (candidateHeader != null) +
+                    ",headerLength=" + headerHtml.Length +
                     ",page=" + (candidateContent != null) +
+                    ",general=" + general +
+                    ",graphics=" + graphics +
                     ",originalTabs=" + originalTabs + "]");
+            }
             if (candidateHeader == null || candidateContent == null ||
                 !originalTabs)
                 continue;
