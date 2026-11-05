@@ -282,6 +282,29 @@ internal static class ModConfigCatalog
 
         var result = pages.Values.OrderBy(x => x.Name,
             StringComparer.OrdinalIgnoreCase).ToList();
+
+        // Initial supported proof of concept must still be discoverable if
+        // a client hides plugin instances from BepInEx's public registry.
+        // The entry is the SAME live ConfigEntry<float>, not a duplicate.
+        ConfigEntryBase? labelScale = AbilityLabelsSettings.LiveScaleEntry();
+        if (labelScale != null && !result.Any(m =>
+                m.Settings.Any(s => ReferenceEquals(s.Entry, labelScale))))
+        {
+            Setting? scale = Create(labelScale);
+            if (scale != null)
+            {
+                var labels = new ModPage
+                {
+                    Id = "com.horizon.orbus.abilitylabels",
+                    Name = "Ability Labels"
+                };
+                labels.Settings.Add(scale);
+                result.Add(labels);
+                result.Sort((a,b) => string.Compare(a.Name, b.Name,
+                    StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
         Plugin.Logger.LogInfo("[RebornMenu] Discovered " + result.Count +
             " mods with live BepInEx controls (bounded numeric / bool / enum only).");
         return result;
