@@ -191,10 +191,63 @@ internal static class ModConfigCatalog
         }
     }
 
+    // The native Mods page is a PLAYER SETTINGS surface, not a diagnostic
+    // panel. Keep developer knobs in their original .cfg files so tools and
+    // keyboard diagnostics continue to work, but do not show them in VR.
+    // Future mods can explicitly opt out with the literal
+    // ConfigDescription tag "RebornMenu.Hide" (no library dependency).
+    private static bool HiddenInMenu(ConfigEntryBase entry)
+    {
+        string section = entry.Definition.Section;
+        string key = entry.Definition.Key;
+        string description = entry.Description.Description ?? "";
+
+        foreach (string hidden in new[]
+        {
+            "Diagnostics", "Diagnostic", "Investigation", "Debug",
+            "Bard Inspector", "ExperimentalNativeSettings",
+            "Developer", "DevTools", "Internal"
+        })
+            if (string.Equals(section, hidden, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+        if (description.StartsWith("DEPRECATED", StringComparison.OrdinalIgnoreCase) ||
+            description.StartsWith("Legacy compatibility", StringComparison.OrdinalIgnoreCase) ||
+            description.StartsWith("Legacy v0.", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Specific obsolete or development-only knobs still found on
+        // working mods. They remain readable in their owner's .cfg file.
+        if ((section == "Missions" && (key == "EnableRegionTaskGrouping" ||
+                key == "EnableHtmlRegionTaskGrouping" || key == "SpadesMode")) ||
+            (section == "LiveCapture" && key == "AutoStopOnSecondTrigger") ||
+            (section == "NativeMods" && key == "EnableLiveModsTab"))
+            return true;
+
+        // Keep Ability Labels focused on actual label settings rather than
+        // tuning the rendering engine's per-orb offsets in the VR menu.
+        if (section == "Labels" && (key == "AboveOrbMetres" ||
+            key == "TowardHeadMetres"))
+            return true;
+
+        try
+        {
+            if (entry.Description.Tags is IEnumerable tags)
+                foreach (object? tag in tags)
+                    if (tag is string t &&
+                        string.Equals(t, "RebornMenu.Hide",
+                            StringComparison.OrdinalIgnoreCase))
+                        return true;
+        }
+        catch { }
+        return false;
+    }
+
     private static Setting? Create(ConfigEntryBase entry)
     {
         try
         {
+            if (HiddenInMenu(entry)) return null;
             Type type = entry.SettingType;
             string kind = type == typeof(bool) ? "toggle" :
                 type.IsEnum ? "enum" : "";
@@ -284,7 +337,9 @@ internal static class ModConfigCatalog
 
             // Some mods store all options in their plugin class's static
             // fields. Every such ConfigEntry is a live object already.
-            if (group.Settings.Count == 0) continue;
+            // Keep installed mods visible even if they expose only
+            // diagnostics or unsupported config types. Their page will
+            // explain that no ordinary settings are available yet.
             group.Settings.Sort((a,b) =>
             {
                 // Show the flagship Ability Labels Scale control first.
@@ -331,7 +386,7 @@ internal static class ModConfigCatalog
         }
 
         Plugin.Logger.LogInfo("[RebornMenu] Discovered " + result.Count +
-            " mods with live BepInEx controls (bounded numeric / bool / enum only).");
+            " installed mods; only player-facing bounded numeric / bool / enum controls shown.");
         return result;
     }
 }
