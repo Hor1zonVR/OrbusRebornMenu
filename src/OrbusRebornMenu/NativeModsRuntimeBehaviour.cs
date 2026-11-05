@@ -32,6 +32,9 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private object? _page;
     private object? _sidebar;
     private object? _content;
+    private object? _outerSettingsScroll;
+    private bool _outerScrollDisabled;
+    private bool _reportedOuterScroll;
     private readonly List<ModConfigCatalog.ModPage> _mods = new();
     private string _selectedMod = "";
     private long _sidebarBuilt;
@@ -344,11 +347,14 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             const string newPage =
                 "<div id=\"rebornmenu-settings-page\" " +
                     "class=\"settings-tab data-settingstab-mods\" " +
-                    "style=\"display:none;position:relative;min-height:450px;\">" +
+                    "style=\"display:none;position:relative;width:540px;height:410px;" +
+                    "overflow:hidden;padding:0;\">" +
                   "<div id=\"rm-mod-list\" style=\"position:absolute;left:3px;" +
-                    "top:8px;width:148px;height:420px;overflow-y:auto;\"></div>" +
+                    "top:8px;width:148px;height:390px;overflow-x:hidden;" +
+                    "overflow-y:auto;padding:0;\"></div>" +
                   "<div id=\"rm-mod-content\" style=\"position:absolute;left:174px;" +
-                    "top:4px;width:350px;height:420px;overflow-y:auto;\"></div>" +
+                    "top:4px;width:350px;height:394px;overflow-x:hidden;" +
+                    "overflow-y:auto;padding:0;\"></div>" +
                 "</div>";
             if (!AppendHtml(content, newPage)) return;
             tab = ById(doc, "rebornmenu-settings-tab");
@@ -363,6 +369,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         _page = page;
         _sidebar = ById(doc, "rm-mod-list");
         _content = ById(doc, "rm-mod-content");
+        _outerSettingsScroll = FirstByClass(doc, "largesettingsmenu-inner");
 
         if (_sidebar == null || _content == null)
         {
@@ -446,9 +453,36 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                 StringComparison.Ordinal)) continue;
 
             Set(Get(_page, "style"), "display", "none");
+            SetOuterSettingsScroll(false);
             Set(_tab, "className", modsClasses.Replace(
                 "settings-tab-control-active", "", StringComparison.Ordinal).Trim());
             break;
+        }
+    }
+
+    private void SetOuterSettingsScroll(bool modsVisible)
+    {
+        // Orbus already scrolls the whole .largesettingsmenu-inner.
+        // Disable that THIRD scrollbar only on the Mods tab; the left
+        // list and right config panel keep their own overflow-y:auto.
+        // Restore the vanilla scrolling for every original Settings tab.
+        if (_outerSettingsScroll == null) return;
+        if (_outerScrollDisabled == modsVisible) return;
+
+        object? style = Get(_outerSettingsScroll, "style");
+        string overflow = modsVisible ? "hidden" : "auto";
+        bool changed = Set(style, "overflowY", overflow);
+        if (!changed)
+            changed = Set(style, "overflow", modsVisible ? "hidden" : "auto");
+
+        if (changed)
+            _outerScrollDisabled = modsVisible;
+        else if (!_reportedOuterScroll)
+        {
+            _reportedOuterScroll = true;
+            Plugin.Logger.LogWarning("[RebornMenu] Parent Settings scroll " +
+                "could not be changed via PowerUI style API. The Mods panels " +
+                "remain bounded to their own dimensions.");
         }
     }
 
@@ -478,6 +512,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             }
 
             Set(Get(_page, "style"), "display", "block");
+            SetOuterSettingsScroll(true);
             string ownClasses = Get(_tab, "className")?.ToString() ?? "";
             if (!ownClasses.Contains("settings-tab-control-active",
                 StringComparison.Ordinal))
