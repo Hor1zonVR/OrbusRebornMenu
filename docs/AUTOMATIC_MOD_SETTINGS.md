@@ -134,22 +134,87 @@ it invokes the mod's **existing** live configuration. Mod authors should
 never expose sensitive config values as numeric/bool/enums if those
 values should not be shown in VR.
 
-## Optional WeaponAdjustments preset page (v0.2.11)
+## Generic custom mod pages (v0.2.12 and later)
 
-RebornMenu v0.2.11 retains automatic BepInEx Config.Bind discovery for
-every installed mod. One first-party, optional integration allows
-OrbusWeaponAdjustments v0.2.2+ to render its **own** full-width right-hand
-page when the user selects it in the Mods sidebar.
+**RebornMenu is a reusable host, not a registry of known mods.** Any installed
+BepInEx mod can supply a full right-side Mods page without updating or
+referencing RebornMenu. The regular Config.Bind controls remain the default.
 
-- The integration uses reflection to call the public static provider
-  WeaponPresetUi.RenderInRebornMenu(document, content) and does not
-  introduce a compile-time dependency on WeaponAdjustments.
-- If the provider or plugin is absent, the usual BepInEx configuration
-  controls remain available as a fallback.
-- WeaponAdjustments owns all preset I/O, class/character guards, native
-  Orbus keyboard prompts, delete confirmation, Trash and backups.
-- RebornMenu does not read native grip keys, player IDs or preset files.
-- General Settings remains untouched by this extension.
+### Provider contract — version 1
 
-The per-mod page is scoped to the existing 350px-wide
-rm-mod-content region. Other selected mod pages render unchanged.
+Put a **public** provider class in the **same managed assembly** as your
+BepInEx plugin class. It must expose BOTH of these public members:
+
+1. A compile-time constant `public const string RebornMenuModGuid` matching
+   the plugin's exact `[BepInPlugin(GUID, ...)]` GUID.
+2. `public static bool RenderInRebornMenu(object document, object content)`.
+
+Return `true` only when your custom UI has successfully rendered. Return
+`false` if it is unavailable; RebornMenu will show the ordinary Config.Bind
+settings for that mod instead. No extra JSON registration, shared API DLL,
+RebornMenu source edit, or other plugin dependency is necessary.
+
+```csharp
+using System;
+using System.Reflection;
+using BepInEx;
+using BepInEx.Unity.IL2CPP;
+
+[BepInPlugin("com.example.orbus.testmod", "TestMod", "1.0.0")]
+public sealed class MyModPlugin : BasePlugin
+{
+    public override void Load() { /* initialise your mod */ }
+}
+
+public static class MyCustomSettingsPage
+{
+    public const string RebornMenuModGuid = "com.example.orbus.testmod";
+
+    public static bool RenderInRebornMenu(object document, object content)
+    {
+        if (document == null || content == null) return false;
+        var set = content.GetType().GetMethod("set_innerHTML",
+            BindingFlags.Instance | BindingFlags.Public, null,
+            new[] { typeof(string) }, null);
+        if (set == null) return false;
+        set.Invoke(content, new object[] {
+            "<h4>My Custom Mod</h4><p>Page supplied by my mod.</p>"
+        });
+        return true;
+    }
+}
+```
+
+For buttons, implement your own PowerUI event-handler bindings (such as
+the existing native `Dom.Event` / `addEventListener` delegate bridge),
+state refresh, and input/VR keyboard behaviour. RebornMenu supplies
+only the **existing Mods tab, left-hand mod navigation, and right-hand
+content DOM element**. The content area is approximately 350px wide;
+use the existing Orbus `menu-list` and `compact option` styles.
+
+### Discovery and isolation
+
+- RebornMenu discovers installed BepInEx `[BepInPlugin]` classes as usual.
+- It examines **only that plugin's own assembly** for a public provider
+  with the exact constant GUID and required method signature.
+- It neither probes every Unity/IL2CPP assembly for page renderers nor
+  hardcodes any plugin names, including WeaponAdjustments.
+- Selecting the mod invokes its provider; selecting another returns to
+  that mod's normal or custom page.
+- If the provider is missing, returns false, or throws, RebornMenu
+  falls back to the mod's normal config controls without breaking
+  the other mod pages.
+- The mod owns its save data, validation, page state, event handlers
+  and callbacks. RebornMenu does not read private mod data.
+- The GUID must be unique to each BepInEx plugin. When multiple plugins
+  share an assembly, each provider must declare the intended GUID.
+
+### Current built-in example
+
+OrbusWeaponAdjustments v0.2.3+ opts in with
+`WeaponPresetUi.RebornMenuModGuid` and
+`WeaponPresetUi.RenderInRebornMenu(document, content)`.
+The same mechanism is available immediately to all future Orbus mods.
+No future RebornMenu updates are required **for adding new pages using
+this v1 contract**. A future extension of the contract itself may
+require a RebornMenu version update.

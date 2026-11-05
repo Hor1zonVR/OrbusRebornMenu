@@ -687,29 +687,6 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         RenderSelected();
     }
 
-    // Optional first-party page provider. No hard dependency from RebornMenu
-    // to WeaponAdjustments: any other mods continue to use Config.Bind UI.
-    // The provider owns its own state and keeps BepInEx preset data private.
-    private bool TryRenderWeaponPresetPage()
-    {
-        if (_document == null || _content == null) return false;
-        try
-        {
-            Type? provider = FindType("OrbusWeaponAdjustments.WeaponPresetUi");
-            MethodInfo? entry = provider?.GetMethod("RenderInRebornMenu",
-                BindingFlags.Public | BindingFlags.Static, null,
-                new[] { typeof(object), typeof(object) }, null);
-            if (entry == null || entry.ReturnType != typeof(bool)) return false;
-            return entry.Invoke(null, new[] { _document, _content }) is true;
-        }
-        catch (Exception ex)
-        {
-            Plugin.Logger.LogWarning("[RebornMenu] Weapon preset page provider unavailable: " +
-                (ex.InnerException ?? ex).GetType().Name);
-            return false;
-        }
-    }
-
     private void RenderSelected()
     {
         if (_document == null || _content == null || _sidebar == null) return;
@@ -717,10 +694,10 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             m.Id == _selectedMod);
         if (mod == null) return;
 
-        // A full native preset manager belongs on its own mod page, not in
-        // vanilla General Settings. Keep default config UI for all other mods.
-        if (mod.Id == "com.horizon.orbus.weaponadjustments" &&
-            TryRenderWeaponPresetPage())
+        // Generic custom-page convention: any installed plugin can own its
+        // page, discovered by its GUID and public static renderer. No mod
+        // names, classes or per-mod code are hardcoded in RebornMenu.
+        if (NativeCustomModPages.TryRender(mod, _document, _content))
         {
             for (int i = 0; i < _mods.Count; i++)
             {

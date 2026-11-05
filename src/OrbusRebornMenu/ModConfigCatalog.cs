@@ -22,6 +22,7 @@ internal static class ModConfigCatalog
         internal string Id = "";
         internal string Name = "";
         internal readonly List<Setting> Settings = new();
+        internal MethodInfo? CustomRenderer;
     }
 
     internal sealed class Setting
@@ -354,6 +355,10 @@ internal static class ModConfigCatalog
             var group = new ModPage { Id = metadata.GUID, Name = metadata.Name };
             instances.TryGetValue(type, out object? instance);
             AddFromPlugin(group, type, instance);
+            // A mod may opt into its own native page without referencing
+            // RebornMenu. Resolve its public provider only in its own
+            // BepInPlugin assembly, and match the exact plugin GUID.
+            group.CustomRenderer = NativeCustomModPages.Discover(type, metadata.GUID);
 
             // Some mods store all options in their plugin class's static
             // fields. Every such ConfigEntry is a live object already.
