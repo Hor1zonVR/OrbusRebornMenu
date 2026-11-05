@@ -125,6 +125,7 @@ internal static class ModConfigCatalog
                 name.StartsWith("System", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("mscorlib", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("Assembly-CSharp", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("Mono.", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("BepInEx.", StringComparison.OrdinalIgnoreCase))
                 continue;
@@ -286,6 +287,16 @@ internal static class ModConfigCatalog
             if (group.Settings.Count == 0) continue;
             group.Settings.Sort((a,b) =>
             {
+                // Show the flagship Ability Labels Scale control first.
+                // Everything else remains grouped by native BepInEx section.
+                if (group.Name.IndexOf("AbilityLabels", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    group.Name.IndexOf("Ability Labels", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    bool aScale = a.Section == "Labels" && a.Name == "Scale";
+                    bool bScale = b.Section == "Labels" && b.Name == "Scale";
+                    if (aScale != bScale) return aScale ? -1 : 1;
+                }
+
                 int section = string.Compare(a.Section, b.Section,
                     StringComparison.OrdinalIgnoreCase);
                 return section != 0 ? section :
