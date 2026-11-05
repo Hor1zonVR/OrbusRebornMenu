@@ -132,7 +132,7 @@ try {
     }
     $sha = (& git rev-parse HEAD).Trim()
     Assert-Exit 'Resolving release commit'
-    $notes = "Experimental RebornMenu VR prototype. Opens a world-space parchment by Ctrl+Alt+M; left-wrist rune and controller input require headset testing. No generic config editor yet. This is a standalone optional BepInEx plugin, NOT an automatic RM companion."
+    $notes = "Experimental native Settings Mods tab after Graphics (Community and Spades). Reuses original PowerUI tab and settings-page CSS, plus Ability Labels Smaller/Larger controls (live saved [Labels] Scale). Safe native document detection; no original game UI nodes replaced. Requires headset verification; no generic config editor yet. Standalone optional RebornManager client mod."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$sha,
               '--title',"RebornMenu $tag",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
