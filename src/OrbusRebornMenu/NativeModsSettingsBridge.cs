@@ -798,11 +798,12 @@ internal static class NativeModsSettingsBridge
 
                 if (modern)
                 {
-                    // Prefer click. Register at most one event here to avoid
-                    // double toggles when both click and mousedown fire.
+                    // Original Orbus Settings controls use onmousedown.
+                    // Subscribe to that ONE event, not both click/mousedown,
+                    // so one VR trigger only changes the config once.
                     object[] args = parameters.Length == 3
-                        ? new object[] { "click", converted, false }
-                        : new object[] { "click", converted };
+                        ? new object[] { "mousedown", converted, false }
+                        : new object[] { "mousedown", converted };
                     method.Invoke(element, args);
                 }
                 else method.Invoke(element, new[] { converted });
