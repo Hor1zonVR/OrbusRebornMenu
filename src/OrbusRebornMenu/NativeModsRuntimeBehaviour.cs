@@ -92,6 +92,36 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         catch { return false; }
     }
 
+    // PowerUI preserves a nested scroller's position when its contents
+    // are replaced. Resetting makes the top entries accessible on reopening
+    // Mods, instead of leaving only the final entries visible.
+    private static void ResetSidebarScroll(object? sidebar)
+    {
+        if (sidebar == null) return;
+        try
+        {
+            Type type = sidebar.GetType();
+            PropertyInfo? property = type.GetProperty("scrollTop", Flags);
+            if (property != null && property.CanWrite)
+            {
+                object zero = Convert.ChangeType(0, property.PropertyType,
+                    CultureInfo.InvariantCulture);
+                property.SetValue(sidebar, zero);
+                return;
+            }
+            MethodInfo? setter = type.GetMethods(Flags).FirstOrDefault(m =>
+                m.Name == "set_scrollTop" && m.GetParameters().Length == 1);
+            if (setter != null)
+            {
+                Type parameterType = setter.GetParameters()[0].ParameterType;
+                object zero = Convert.ChangeType(0, parameterType,
+                    CultureInfo.InvariantCulture);
+                setter.Invoke(sidebar, new[] { zero });
+            }
+        }
+        catch { /* Missing scroll API must never break native Settings. */ }
+    }
+
     private static object? CallOne(object? target, string name, string value)
     {
         if (target == null) return null;
@@ -617,6 +647,10 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             ReportBindingProblem("Cannot render native mod navigation.");
             return;
         }
+
+        // The DOM may retain an old vertical scroll offset even though
+        // all installed mod rows were rediscovered and rendered.
+        ResetSidebarScroll(_sidebar);
 
         // No RebornMenu source modification is required for another mod:
         // its already-loaded ConfigEntry objects were discovered above.
