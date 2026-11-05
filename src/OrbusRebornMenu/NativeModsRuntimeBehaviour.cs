@@ -20,7 +20,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic |
                                        BindingFlags.Instance | BindingFlags.Static;
     private float _nextAttempt;
-    private bool _loggedNoAnchor;
+    private string _lastWaitReason = "";
     private bool _loggedFailure;
     private long _boundTab;
     private long _boundMinus;
@@ -110,7 +110,13 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             // existing tab elements or their original native handlers.
             MethodInfo? method = target.GetType().GetMethod("appendChild", Flags,
                 null, new[] { typeof(string) }, null);
-            if (method == null) return false;
+            if (method == null)
+            {
+                Plugin.Logger.LogWarning("[RebornMenu] Native DOM element " +
+                    target.GetType().FullName +
+                    " does not expose appendChild(string); no markup inserted.");
+                return false;
+            }
             method.Invoke(target, new object[] { html });
             return true;
         }
@@ -215,12 +221,20 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         object? doc = null;
         object? header = null;
         object? content = null;
+        var candidates = new List<string>();
         foreach (object candidate in documents)
         {
             object? candidateHeader = ById(candidate, "settings-tab-controls");
             object? candidateContent = FirstByClass(candidate, "largesettingsmenu-inner");
+            bool originalTabs = candidateHeader != null &&
+                LooksLikeOriginalSettings(candidateHeader, candidate);
+            if (candidates.Count < 4)
+                candidates.Add(candidate.GetType().Name +
+                    "[header=" + (candidateHeader != null) +
+                    ",page=" + (candidateContent != null) +
+                    ",originalTabs=" + originalTabs + "]");
             if (candidateHeader == null || candidateContent == null ||
-                !LooksLikeOriginalSettings(candidateHeader, candidate))
+                !originalTabs)
                 continue;
             doc = candidate;
             header = candidateHeader;
@@ -230,23 +244,28 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
 
         if (doc == null || header == null || content == null)
         {
-            if (!_loggedNoAnchor)
+            // The first Update often runs before login creates PlayerMenu.
+            // Re-check every 1.25s and log on STATE CHANGE, rather than
+            // permanently hiding all subsequent useful diagnostics.
+            string reason = "menuType=" + (type?.FullName ?? "<none>") +
+                ",playerDocument=" + (playerDoc?.GetType().Name ?? "<none>") +
+                ",docs=" + documents.Count +
+                (candidates.Count > 0 ? ",checks=" + string.Join(";", candidates) : "");
+            if (_lastWaitReason != reason)
             {
-                _loggedNoAnchor = true;
-                object? candidateHeader = playerDoc == null ? null :
-                    ById(playerDoc, "settings-tab-controls");
-                string sample = Get(candidateHeader, "innerHTML") as string ?? "";
-                Plugin.Logger.LogWarning("[RebornMenu] Native Mods tab waiting: " +
-                    "checked " + documents.Count +
-                    " native documents; direct PlayerMenu header=" +
-                    (candidateHeader != null) + ", headerHtmlLength=" + sample.Length +
-                    ", originalGeneralClass=" +
-                    (playerDoc != null && FirstByClass(playerDoc, "data-switchtab-general") != null) +
-                    ". No game DOM was modified.");
+                _lastWaitReason = reason;
+                Plugin.Logger.LogInfo("[RebornMenu] Waiting for real Settings: " +
+                    reason + ". No game DOM modified.");
             }
             return;
         }
-        _loggedNoAnchor = false;
+
+        if (_lastWaitReason != "ready")
+        {
+            _lastWaitReason = "ready";
+            Plugin.Logger.LogInfo("[RebornMenu] Verified original Settings " +
+                "header and scroll panel in " + doc.GetType().FullName + ".");
+        }
         object? tab = ById(doc, "rebornmenu-settings-tab");
         object? page = ById(doc, "rebornmenu-settings-page");
 
