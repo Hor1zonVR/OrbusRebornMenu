@@ -23,6 +23,10 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
     private bool _loggedNoAnchor;
     private bool _loggedFailure;
     private long _boundTab;
+    private long _boundMinus;
+    private long _boundPlus;
+    private bool _layoutApplied;
+    private string _lastBindingWarning = "";
     private object? _document;
     private object? _tab;
     private object? _page;
@@ -232,7 +236,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             const string newTab =
                 "<div id=\"rebornmenu-settings-tab\" " +
                 "class=\"settings-tab-control data-switchtab-mods\" " +
-                "style=\"width:104px;margin-right:8px;\">Mods</div>";
+                "style=\"display:none;width:104px;margin-right:8px;\">Mods</div>";
             if (!AppendHtml(header, newTab)) return;
 
             const string newPage =
@@ -263,48 +267,112 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         _minus = ById(doc, "rebornmenu-size-minus");
         _plus = ById(doc, "rebornmenu-size-plus");
 
-        long pointer = Identity(tab);
-        if (pointer == _boundTab) return;
+        // Bind each node at most once per native pointer. Partial support
+        // cannot register duplicate callbacks on the next update.
+        if (_boundTab != Identity(tab))
+        {
+            _boundTab = 0;
+            _layoutApplied = false;
+            if (!NativeModsSettingsBridge.TryBindNativeClick(tab, ShowMods,
+                    out string problem))
+            {
+                ReportBindingProblem("Mods tab: " + problem);
+                return;
+            }
+            _boundTab = Identity(tab);
+        }
 
-        if (!NativeModsSettingsBridge.TryBindNativeClick(tab, ShowMods,
-                out string problem))
+        if (_minus == null || _boundMinus != Identity(_minus))
         {
-            Plugin.Logger.LogWarning("[RebornMenu] Native Mods pointer " +
-                "listener unavailable: " + problem);
-            return;
+            _boundMinus = 0;
+            if (_minus == null || !NativeModsSettingsBridge.TryBindNativeClick(
+                    _minus, () => AdjustSize(-0.1f), out string problem))
+            {
+                ReportBindingProblem("Smaller: " + (_minus == null
+                    ? "element missing" : problem));
+                return;
+            }
+            _boundMinus = Identity(_minus);
         }
-        if (_minus == null || !NativeModsSettingsBridge.TryBindNativeClick(
-                _minus, () => AdjustSize(-0.1f), out problem))
+
+        if (_plus == null || _boundPlus != Identity(_plus))
         {
-            Plugin.Logger.LogWarning("[RebornMenu] Smaller button unavailable: " +
-                problem);
-            return;
+            _boundPlus = 0;
+            if (_plus == null || !NativeModsSettingsBridge.TryBindNativeClick(
+                    _plus, () => AdjustSize(0.1f), out string problem))
+            {
+                ReportBindingProblem("Larger: " + (_plus == null
+                    ? "element missing" : problem));
+                return;
+            }
+            _boundPlus = Identity(_plus);
         }
-        if (_plus == null || !NativeModsSettingsBridge.TryBindNativeClick(
-                _plus, () => AdjustSize(0.1f), out problem))
+
+        if (!_layoutApplied)
         {
-            Plugin.Logger.LogWarning("[RebornMenu] Larger button unavailable: " +
-                problem);
-            return;
+            if (!NarrowOriginalTabWidths(doc))
+            {
+                ReportBindingProblem("Original tab sizing API unavailable; " +
+                    "Mods hidden to avoid overlap.");
+                return;
+            }
+            _layoutApplied = true;
+            RefreshValue();
+            Plugin.Logger.LogInfo("[RebornMenu] Native Mods VR controls ready. " +
+                "Settings > Mods > Ability Labels > Smaller/Larger.");
         }
-        _boundTab = pointer;
-        NarrowOriginalTabWidths(doc);
-        RefreshValue();
-        Plugin.Logger.LogInfo("[RebornMenu] Native Mods VR controls ready. " +
-            "Settings > Mods > Ability Labels > Smaller/Larger.");
+
+        Set(Get(_tab, "style"), "display", "inline-block");
+        SyncOtherTabs();
     }
 
-    private static void NarrowOriginalTabWidths(object doc)
+    private void ReportBindingProblem(string message)
     {
+        if (_lastBindingWarning == message) return;
+        _lastBindingWarning = message;
+        Plugin.Logger.LogWarning("[RebornMenu] Native Mods controls: " + message);
+    }
+
+    private static bool NarrowOriginalTabWidths(object doc)
+    {
+        var tabs = new List<object>();
         foreach (string name in new[] { "general", "locomotion", "audio", "graphics" })
         {
             object? old = FirstByClass(doc, "data-switchtab-" + name);
-            if (old == null) continue;
+            if (old == null) return false;
+            tabs.Add(old);
+        }
+
+        bool result = true;
+        foreach (object old in tabs)
+        {
             object? style = Get(old, "style");
-            // Deliberately change only width/margin, preserving all original
-            // visuals, native mouse handlers, and selected-state classes.
-            Set(style, "width", "104px");
-            Set(style, "marginRight", "8px");
+            // Preserve Orbus's original images, text, event handlers and
+            // active classes. Only adjust tab dimensions to fit all five.
+            result = Set(style, "width", "104px") && result;
+            result = Set(style, "marginRight", "8px") && result;
+        }
+        return result;
+    }
+
+    private void SyncOtherTabs()
+    {
+        if (_document == null || _tab == null || _page == null) return;
+        string modsClasses = Get(_tab, "className")?.ToString() ?? "";
+        if (!modsClasses.Contains("settings-tab-control-active",
+            StringComparison.Ordinal)) return;
+
+        foreach (string name in new[] { "general", "locomotion", "audio", "graphics" })
+        {
+            object? other = FirstByClass(_document, "data-switchtab-" + name);
+            string classes = Get(other, "className")?.ToString() ?? "";
+            if (!classes.Contains("settings-tab-control-active",
+                StringComparison.Ordinal)) continue;
+
+            Set(Get(_page, "style"), "display", "none");
+            Set(_tab, "className", modsClasses.Replace(
+                "settings-tab-control-active", "", StringComparison.Ordinal).Trim());
+            break;
         }
     }
 
