@@ -92,34 +92,79 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         catch { return false; }
     }
 
-    // PowerUI preserves a nested scroller's position when its contents
-    // are replaced. Resetting makes the top entries accessible on reopening
-    // Mods, instead of leaving only the final entries visible.
-    private static void ResetSidebarScroll(object? sidebar)
+    // PowerUI can preserve stale scroll positions across game tab switches
+    // and DOM rebuilds. All three scrolling regions (vanilla Settings,
+    // sidebar, content) must be restored together. Older builds expose
+    // scrollTop as a numeric property, field or setter, so check each form.
+    private static bool ResetScrollTop(object? element)
     {
-        if (sidebar == null) return;
+        if (element == null) return false;
         try
         {
-            Type type = sidebar.GetType();
-            PropertyInfo? property = type.GetProperty("scrollTop", Flags);
-            if (property != null && property.CanWrite)
+            Type t = element.GetType();
+            foreach (string name in new[] { "scrollTop", "ScrollTop" })
             {
-                object zero = Convert.ChangeType(0, property.PropertyType,
-                    CultureInfo.InvariantCulture);
-                property.SetValue(sidebar, zero);
-                return;
+                PropertyInfo? property = t.GetProperty(name, Flags);
+                if (property?.CanWrite == true && property.GetIndexParameters().Length == 0)
+                {
+                    try
+                    {
+                        object zero = Convert.ChangeType(0, property.PropertyType,
+                            CultureInfo.InvariantCulture);
+                        property.SetValue(element, zero);
+                        return true;
+                    }
+                    catch { /* Try the next native API form. */ }
+                }
+                FieldInfo? field = t.GetField(name, Flags);
+                if (field != null && !field.IsInitOnly)
+                {
+                    try
+                    {
+                        field.SetValue(element, Convert.ChangeType(0,
+                            field.FieldType, CultureInfo.InvariantCulture));
+                        return true;
+                    }
+                    catch { }
+                }
             }
-            MethodInfo? setter = type.GetMethods(Flags).FirstOrDefault(m =>
-                m.Name == "set_scrollTop" && m.GetParameters().Length == 1);
-            if (setter != null)
+            foreach (MethodInfo method in t.GetMethods(Flags))
             {
-                Type parameterType = setter.GetParameters()[0].ParameterType;
-                object zero = Convert.ChangeType(0, parameterType,
-                    CultureInfo.InvariantCulture);
-                setter.Invoke(sidebar, new[] { zero });
+                ParameterInfo[] args = method.GetParameters();
+                if ((method.Name == "set_scrollTop" ||
+                     method.Name == "set_ScrollTop") && args.Length == 1)
+                {
+                    try
+                    {
+                        method.Invoke(element, new[]
+                        {
+                            Convert.ChangeType(0, args[0].ParameterType,
+                                CultureInfo.InvariantCulture)
+                        });
+                        return true;
+                    }
+                    catch { }
+                }
+                // Some PowerUI versions supply a numeric scrollTo(x,y).
+                if (method.Name == "scrollTo" && args.Length == 2)
+                {
+                    try
+                    {
+                        method.Invoke(element, new[]
+                        {
+                            Convert.ChangeType(0, args[0].ParameterType,
+                                CultureInfo.InvariantCulture),
+                            Convert.ChangeType(0, args[1].ParameterType,
+                                CultureInfo.InvariantCulture)
+                        });
+                        return true;
+                    }
+                    catch { }
+                }
             }
         }
-        catch { /* Missing scroll API must never break native Settings. */ }
+        catch { }
+        return false;
     }
 
     private static object? CallOne(object? target, string name, string value)
@@ -503,27 +548,22 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
 
     private void SetOuterSettingsScroll(bool modsVisible)
     {
-        // Orbus already scrolls the whole .largesettingsmenu-inner.
-        // Disable that THIRD scrollbar only on the Mods tab; the left
-        // list and right config panel keep their own overflow-y:auto.
-        // Restore the vanilla scrolling for every original Settings tab.
+        // CRITICAL: Do NOT set overflow:hidden on the vanilla Settings
+        // scroller. If the player was scrolled down in General, that freezes
+        // the entire Mods page partway down with no way to scroll back up.
+        // Keep Orbus's own proven scrollbar available in every tab. The
+        // Mods sidebar/content can still scroll independently.
         if (_outerSettingsScroll == null) return;
-        if (_outerScrollDisabled == modsVisible) return;
-
         object? style = Get(_outerSettingsScroll, "style");
-        string overflow = modsVisible ? "hidden" : "auto";
-        bool changed = Set(style, "overflowY", overflow);
-        if (!changed)
-            changed = Set(style, "overflow", modsVisible ? "hidden" : "auto");
+        bool changed = Set(style, "overflowY", "auto");
+        if (!changed) changed = Set(style, "overflow", "auto");
+        _outerScrollDisabled = false;
 
-        if (changed)
-            _outerScrollDisabled = modsVisible;
-        else if (!_reportedOuterScroll)
+        if (!changed && !_reportedOuterScroll)
         {
             _reportedOuterScroll = true;
-            Plugin.Logger.LogWarning("[RebornMenu] Parent Settings scroll " +
-                "could not be changed via PowerUI style API. The Mods panels " +
-                "remain bounded to their own dimensions.");
+            Plugin.Logger.LogWarning("[RebornMenu/Scroll] Could not restore " +
+                "vanilla Settings scrollbar. Mods will not hide it.");
         }
     }
 
@@ -552,17 +592,25 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                 }
             }
 
+            // Reset the GAME'S outer scroll while it is still navigable,
+            // before showing Mods. Never freeze it with overflow:hidden.
+            bool outerReset = ResetScrollTop(_outerSettingsScroll);
             Set(Get(_page, "style"), "display", "block");
             SetOuterSettingsScroll(true);
+            if (!outerReset)
+                Plugin.Logger.LogInfo("[RebornMenu/Scroll] Outer scrollbar kept " +
+                    "enabled; scroll to top normally if this PowerUI build " +
+                    "doesn't expose a writable scrollTop.");
             string ownClasses = Get(_tab, "className")?.ToString() ?? "";
             if (!ownClasses.Contains("settings-tab-control-active",
                 StringComparison.Ordinal))
                 Set(_tab, "className",
                     ownClasses + " settings-tab-control-active");
             EnsureModList();
-            // Also restore the top entries when reopening a previously built
-            // Mods tab; EnsureModList may return early for the same DOM.
-            ResetSidebarScroll(_sidebar);
+            // The left navigation AND right page can retain offsets from
+            // previously opened mods even when the DOM hasn't changed.
+            ResetScrollTop(_sidebar);
+            ResetScrollTop(_content);
         }
         catch (Exception ex)
         {
@@ -653,7 +701,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
 
         // The DOM may retain an old vertical scroll offset even though
         // all installed mod rows were rediscovered and rendered.
-        ResetSidebarScroll(_sidebar);
+        ResetScrollTop(_sidebar);
 
         // No RebornMenu source modification is required for another mod:
         // its already-loaded ConfigEntry objects were discovered above.
@@ -685,6 +733,9 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
         if (index < 0 || index >= _mods.Count) return;
         _selectedMod = _mods[index].Id;
         RenderSelected();
+        // Switching mod pages should begin at the top, not at the
+        // preceding mod's last scroll position.
+        ResetScrollTop(_content);
     }
 
     private void RenderSelected()

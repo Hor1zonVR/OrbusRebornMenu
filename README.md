@@ -2,7 +2,7 @@
 
 **One universal in-game VR mod configuration menu for OrbusVR Community Edition and Orbus Renewed.**
 
-**Status: native Mods tab and multi-mod configuration browser confirmed working in VR on Spades.** Players can select installed mods and modify live BepInEx settings using original Orbus styling. The upcoming revision separates sidebar/content scrolling and hides developer diagnostics; those latest layout changes still require in-headset verification.
+**Status: native Mods tab and multi-mod configuration browser confirmed working in VR on Spades.** Players can select installed mods and modify live BepInEx settings using original Orbus styling. v0.2.13 fixes a bug that could freeze the entire Mods page partway down after scrolling in General Settings. This fix still requires live VR verification.
 
 ## The idea
 
@@ -94,3 +94,28 @@ Standalone Quest Android mod loading is a separate future project and cannot sim
 - [CastMetrics](https://github.com/Hor1zonVR/CastMetrics)
 
 **Not affiliated with the original OrbusVR developers.** Respect community server rules and the original game/client licences when building plugins.
+
+## v0.2.13 — Recoverable Mods scrolling
+
+On some Renewed/Spades sessions the Mods tab was partially off-screen:
+the first installed mods and the top of the selected page disappeared,
+and scrolling up had no effect. RebornMenu was setting `overflowY:hidden`
+on the **game's outer Settings scroller** while opening Mods. If the
+player had previously scrolled down in General, this trapped the entire
+page at that offset. Resetting only the Mods sidebar didn't fix it.
+
+v0.2.13 keeps the original `.largesettingsmenu-inner` scroll behaviour
+enabled (`overflowY:auto`) even on Mods. It attempts to reset the
+outer Settings, mod navigation and selected content to the top on
+opening Mods, and resets the right content when changing selected mods.
+The reset supports multiple reflected `scrollTop` or `scrollTo` APIs;
+if a PowerUI client exposes none of them, the native outer scrollbar
+remains usable rather than getting locked. This avoids depending on
+the internal implementation of PowerUI's per-client scrollTop setter.
+
+**No saved mod configs, custom page providers, original game Settings
+markup, or WeaponAdjustments presets are modified.** The generic
+custom-page API introduced in v0.2.12 remains unchanged. Test this
+with General scrolled to the bottom first, then open Mods and verify
+that Ability Labels and the WeaponAdjustments page header are visible
+and that all columns can still scroll up/down.
