@@ -606,7 +606,7 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
                 StringComparison.Ordinal))
                 Set(_tab, "className",
                     ownClasses + " settings-tab-control-active");
-            EnsureModList();
+            EnsureModList(refreshOnOpen: true);
             // The left navigation AND right page can retain offsets from
             // previously opened mods even when the DOM hasn't changed.
             ResetScrollTop(_sidebar);
@@ -655,14 +655,24 @@ public sealed class NativeModsRuntimeBehaviour : MonoBehaviour
             .Replace("'", "&#39;", StringComparison.Ordinal);
     }
 
-    private void EnsureModList()
+    private void EnsureModList(bool refreshOnOpen = false)
     {
         if (_sidebar == null || _content == null || _document == null) return;
         long pointer = Identity(_sidebar);
-        if (pointer == _sidebarBuilt) return;
+        if (pointer == _sidebarBuilt && !refreshOnOpen) return;
+
+        // Some games initialize mods/configs AFTER the first menu render.
+        // A sidebar that was built while only one plugin was available must
+        // not stay stuck with that incomplete list for the entire session.
+        // Discover on explicit Mods opening and only rebuild if IDs changed.
+        IReadOnlyList<ModConfigCatalog.ModPage> discovered = ModConfigCatalog.Discover();
+        if (pointer == _sidebarBuilt &&
+            _mods.Select(m => m.Id).SequenceEqual(discovered.Select(m => m.Id),
+                StringComparer.Ordinal))
+            return;
 
         _mods.Clear();
-        _mods.AddRange(ModConfigCatalog.Discover());
+        _mods.AddRange(discovered);
 
         if (_mods.Count == 0)
         {
