@@ -1,4 +1,6 @@
-# OrbusRebornMenu
+# ModCore (formerly RebornMenu)
+
+> **ModCore transition (v0.2.14):** The user-facing mod is now **ModCore**. Its BepInEx GUID `com.horizon.orbus.rebornmenu`, DLL name `OrbusRebornMenu.dll`, existing config path, developer API assembly and GitHub repository intentionally stay the same, so saved settings and third-party integrations keep working. RebornManager's next update installs this companion automatically when it prepares BepInEx. Existing BepInEx instances can install or update it from Client Mods. A server-side ModCore, if built, is a separate server component and is not bundled into this client DLL.
 
 **One universal in-game VR mod configuration menu for OrbusVR Community Edition and Orbus Renewed.**
 
@@ -6,7 +8,7 @@
 
 ## The idea
 
-**RebornManager** will eventually install RebornMenu as a **core companion** whenever it prepares an OrbusVR instance with BepInEx. Players won't have to search the mod library for a separate menu plugin. **RebornManager and other mods must continue working without it.**
+**RebornManager** installs ModCore as a **core companion** whenever it prepares an OrbusVR instance with BepInEx (once the corresponding manager update is published). Players won't have to search the mod library for a separate menu plugin. **RebornManager and other mods must continue working without it.**
 
 In VR, the **current design goal** is to open Mods from Orbus's existing in-game Settings/menu navigation, using its native appearance and controller pointer when technically possible. The earlier wrist-rune prototype has been retired. Browse your loaded mods, select one, and edit its settings through a consistent interface.
 
@@ -20,7 +22,7 @@ In VR, the **current design goal** is to open Mods from Orbus's existing in-game
 
 \`\`\`text
 RebornManager → Select Instance → Install BepInEx
-                                  └─ RebornMenu automatically installed (when released)
+                                  └─ ModCore automatically installed (on updated RM)
                                        └─ Start OrbusVR → Settings → Mods (planned)
                                             ├─ CastMetrics
                                             ├─ QuestHelper
@@ -57,13 +59,11 @@ From any PowerShell folder, run `& "$env:USERPROFILE\OneDrive\Documents\OrbusReb
 
 To roll back without uninstalling, close the game and set `[NativeMods] EnableLiveModsTab = false` in `BepInEx/config/com.horizon.orbus.rebornmenu.cfg` then relaunch.
 
-## Standalone mod first, automatic companion later
+## Automatic core companion and existing installations
 
-During VR testing, RebornMenu is a **normal optional client mod in RebornManager**. We'll publish a compiled DLL through [GitHub Releases](https://github.com/Hor1zonVR/OrbusRebornMenu/releases), and RM will install and update it like CastMetrics or QuestHelper.
+ModCore remains a normal, managed client plugin with its existing ID and published `OrbusRebornMenu.dll` asset. On new BepInEx installations, an updated RebornManager attempts to install the latest stable ModCore release automatically. When network or release lookup fails, **BepInEx still installs successfully** and players can retry through **Client Mods → ModCore → Install**. No client is silently changed when already prepared, and intentionally disabled or manually installed copies are respected.
 
-Maintainers build/publish with `./release.ps1`: this automatically finds local BepInEx compilation references and **never installs into a particular instance**. Players simply open an instance in RM and choose **Client Mods → RebornMenu → Install**. Its built-in normal mod updater handles later stable releases.
-
-Once the headset UI and generic configuration editor are reliable, we'll remove RebornMenu from the ordinary catalogue and integrate it with RM's BepInEx preparation and companion repair flow. **That automatic installation is not yet implemented.**
+Maintainers build/publish with `./release.ps1`; this uses local game interop **only as compilation references**, never installs into a particular instance. Existing installations use **Client Mods → ModCore → Update** through the normal stable-release mechanism. The server-side half of ModCore will be a separate JavaScript server component.
 
 Current test: [v0.2 native Settings installation, testing and rollback](docs/NATIVE_MODS_V020_TEST.md). The [v0.1 wrist prototype notes](docs/PROTOTYPE_V01_TEST.md) are archived.
 

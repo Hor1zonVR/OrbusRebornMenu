@@ -5,7 +5,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusRebornMenu;
 
-[BepInPlugin("com.horizon.orbus.rebornmenu", "RebornMenu", "0.2.13")]
+[BepInPlugin("com.horizon.orbus.rebornmenu", "ModCore", "0.2.14")]
 public sealed class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
@@ -41,12 +41,12 @@ public sealed class Plugin : BasePlugin
         if (EnableNativeDiagnostics.Value)
         {
             AddComponent<NativeSettingsProbeBehaviour>();
-            Log.LogInfo("[RebornMenu/Probe] Ctrl+Shift+F7 captures bounded native DOM " +
+            Log.LogInfo("[ModCore/Probe] Ctrl+Shift+F7 captures bounded native DOM " +
                 "node metadata on demand. Open Missions once, then Settings, " +
                 "and press the shortcut while the game window is focused.");
         }
-        Log.LogInfo("[RebornMenu] native Settings Mods-after-Graphics experiment loaded; legacy fragment injector disabled.");
-        Log.LogInfo("[RebornMenu] No wrist rune, UI canvas, VR controller polling, " +
+        Log.LogInfo("[ModCore] native Settings Mods-after-Graphics experiment loaded; legacy fragment injector disabled.");
+        Log.LogInfo("[ModCore] No wrist rune, UI canvas, VR controller polling, " +
             "or independent laser is used. Other mods remain independent.");
     }
 }

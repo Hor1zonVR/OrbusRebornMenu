@@ -1,4 +1,4 @@
-# One-command RebornMenu -> GitHub Releases -> RebornManager publisher.
+# One-command ModCore -> GitHub Releases -> RebornManager publisher (legacy repository/DLL preserved).
 # This script NEVER installs a DLL into a game folder. build.ps1 only
 # borrows automatically detected BepInEx interop references for compilation.
 #
@@ -102,7 +102,7 @@ try {
                   $source.Substring($group.Index + $group.Length)
         [IO.File]::WriteAllText($pluginFile, $source,
             (New-Object System.Text.UTF8Encoding($false)))
-        Write-Host "Auto-bumped RebornMenu to $tag." -ForegroundColor Yellow
+        Write-Host "Auto-bumped ModCore to $tag." -ForegroundColor Yellow
     }
 
     Write-Host "Compiling DLL for $tag (NO installation into a game)..." -ForegroundColor Cyan
@@ -132,9 +132,9 @@ try {
     }
     $sha = (& git rev-parse HEAD).Trim()
     Assert-Exit 'Resolving release commit'
-    $notes = "Native Mods configuration browser with isolated mod/settings scrolling. Ability Labels now exposes live Scale, Vertical Position and Forward/Backward adjustments, using friendly display names and direction hints from generic BepInEx ConfigDescription tags. Existing original Settings tabs and Spades addons preserved; debug-only fields hidden. Requires VR validation of the new position sliders."
+    $notes = "ModCore (formerly RebornMenu): native Orbus Mods settings tab with automatic BepInEx config discovery and custom mod pages. Legacy plugin GUID, assembly name and user configuration are preserved for backwards compatibility. RM can now install ModCore alongside BepInEx. Existing native Settings tabs and Spades addons are preserved."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$sha,
-              '--title',"RebornMenu $tag",'--notes',$notes)
+              '--title',"ModCore $tag",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
     Write-Host "Publishing $tag to GitHub..." -ForegroundColor Cyan
     & gh @args
@@ -150,7 +150,7 @@ try {
     if ($Preview) {
         Write-Host "Preview release: not shown in RM. Do not promote before headset testing." -ForegroundColor Yellow
     } else {
-        Write-Host 'Stable experimental release: in RM, refresh Client Mods -> RebornMenu to install/update.' -ForegroundColor Green
+        Write-Host 'Stable release: in RM, refresh Client Mods -> ModCore to install/update.' -ForegroundColor Green
     }
 } catch {
     Write-Host "RELEASE STOPPED: $($_.Exception.Message)" -ForegroundColor Red
